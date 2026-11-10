@@ -1,5 +1,6 @@
 import express from "express";
 import { prisma } from "./shared/db/prisma";
+import { errorHandler, notFoundHandler } from "./shared/errors/errorHandler";
 
 /**
  * Builds the HTTP app without starting a server, so tests can mount it directly.
@@ -18,6 +19,9 @@ export function createApp() {
       res.status(503).json({ status: "degraded", database: "down" });
     }
   });
+
+  app.use(notFoundHandler);
+  app.use(errorHandler);
 
   return app;
 }
