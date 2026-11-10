@@ -17,3 +17,9 @@ export class SessionConflictError extends AppError {
     super(409, "SESSION_CONFLICT", "This casino session was already launched for another player or game");
   }
 }
+
+export class CasinoUnavailableError extends AppError {
+  constructor(path: string, attempts: number, reason: string) {
+    super(502, "CASINO_UNAVAILABLE", `Casino ${path} ${reason} after ${attempts} attempts`, { path, attempts });
+  }
+}
