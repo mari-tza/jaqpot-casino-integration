@@ -41,6 +41,21 @@ npm run dev        # http://localhost:3000/health
 | `npm run typecheck` | TypeScript without emitting |
 | `npm run build` / `npm start` | Compile to `dist/` and run it |
 
+## Launching a game
+
+`POST /casino/launchGame` is called by the frontend (unsigned):
+
+```json
+// request
+{ "userId": 1, "gameId": 1, "currency": "USD" }
+// 201
+{ "sessionToken": "…", "providerSessionId": "psess_…", "gameUrl": "https://games.jaqpot.example/play/slots-777?session=psess_…", "balance": "100000", "currency": "USD" }
+```
+
+The casino creates its session, then calls `POST /provider/launch` (signed with
+`x-provider-signature`), and links both. If the provider refuses or does not answer,
+the casino session is deactivated and the response is `502 PROVIDER_ERROR`.
+
 ## Casino API — provider callbacks
 
 All callbacks are `POST`, signed with `x-casino-signature` (`CASINO_SECRET`), and take
@@ -72,7 +87,7 @@ bet is rejected if it arrives later. Details in [D13](docs/decisions.md#d13--rol
 | 400 | `VALIDATION_ERROR` | Body fails validation |
 | 401 | `INVALID_SIGNATURE` | Missing or wrong signature |
 | 403 | `SESSION_USER_MISMATCH` | `userId` does not own the session |
-| 404 | `SESSION_NOT_FOUND` | Unknown or inactive session |
+| 404 | `SESSION_NOT_FOUND`, `GAME_NOT_FOUND`, `WALLET_NOT_FOUND` | Unknown or inactive session, game or wallet |
 | 409 | `IDEMPOTENCY_CONFLICT`, `CREDIT_NOT_ALLOWED` | Reused id, or payout without a valid bet |
 | 409 | `ROLLBACK_NOT_ALLOWED`, `BET_ALREADY_ROLLED_BACK` | Rollback rule broken, or bet arriving after its tombstone |
 | 422 | `INSUFFICIENT_FUNDS`, `BET_LIMIT_EXCEEDED`, `CURRENCY_MISMATCH` | Bet cannot be accepted |
@@ -85,6 +100,7 @@ bet is rejected if it arrives later. Details in [D13](docs/decisions.md#d13--rol
 | `CASINO_SECRET` | yes | – | HMAC key for provider → casino calls (`x-casino-signature`), min 16 chars |
 | `PROVIDER_SECRET` | yes | – | HMAC key for casino → provider calls (`x-provider-signature`), min 16 chars |
 | `PORT` | no | `3000` | HTTP port |
+| `CASINO_CODE` | no | `HOUSE` | How the casino identifies itself to providers |
 | `LOG_LEVEL` | no | `info` | pino level (`silent` in tests) |
 
 The server refuses to start if a secret is missing or too short.

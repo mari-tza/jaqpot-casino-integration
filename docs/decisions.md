@@ -147,3 +147,24 @@ payouts are how providers usually close a lost round.
 **Why.** The spec's rules plus the cases that would otherwise move money twice: a
 double refund, a refund followed by a payout, or a cancelled bet charged later. The
 tombstone answers success so the provider stops retrying, and leaves an audit row.
+
+## D14 — Launch: casino session first, provider second
+
+**Decision.** `POST /casino/launchGame` creates the casino session, then calls
+`/provider/launch`. If the provider refuses, fails or times out (10 s), the casino
+session is deactivated and the call returns `502 PROVIDER_ERROR` with the provider's
+status and code. The endpoint is unsigned: it is called by the frontend, and player
+authentication is out of scope for this test.
+
+**Why.** The provider needs the casino session token to call back, so the casino session
+must exist first. Deactivating it on failure means a half-launched session can never
+receive money callbacks.
+
+## D15 — Provider launch is idempotent per casino session
+
+**Decision.** The provider stores one session per casino session token. A repeated launch
+with the same token, player, game and currency returns the same session; any other
+combination is `409 SESSION_CONFLICT`.
+
+**Why.** The casino may retry a launch after a timeout. Creating a second provider session
+for the same casino session would leave two sessions able to play on one wallet.
