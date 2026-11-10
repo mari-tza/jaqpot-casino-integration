@@ -99,6 +99,50 @@ describe("POST /casino/rollback", () => {
     });
   });
 
+  describe("tombstone: rollback of a bet the casino never saw", () => {
+    it("records a marker, answers success and leaves the balance alone", async () => {
+      const r = await round();
+
+      const res = await r.rollback("bet_lost", "rb_1");
+
+      expect(res.status).toBe(200);
+      expect(res.body).toEqual({ balance: "100000", transactionId: "rb_1", tombstone: true });
+      expect(await prisma.casinoTransaction.findUnique({ where: { externalTransactionId: "rb_1" } })).toMatchObject({
+        transactionType: "ROLLBACK",
+        amount: BigInt(0),
+        relatedExternalTransactionId: "bet_lost",
+      });
+    });
+
+    it("rejects the bet if it arrives later", async () => {
+      const r = await round();
+      await r.rollback("bet_late");
+
+      const late = await r.bet("bet_late", 700);
+
+      expect(late.status).toBe(409);
+      expect(late.body.error).toBe("BET_ALREADY_ROLLED_BACK");
+      expect(await balanceOf("alice")).toBe(BigInt(100_000));
+    });
+
+    it("answers a retry of the tombstone the same way", async () => {
+      const r = await round();
+
+      const first = await r.rollback("bet_lost", "rb_1");
+      const retry = await r.rollback("bet_lost", "rb_1");
+
+      expect(retry.body).toEqual(first.body);
+      expect(await prisma.casinoTransaction.count()).toBe(1);
+    });
+
+    it("rejects a second rollback id for the same unknown bet", async () => {
+      const r = await round();
+      await r.rollback("bet_lost");
+
+      expect((await r.rollback("bet_lost")).status).toBe(409);
+    });
+  });
+
   it("rejects another player's bet", async () => {
     const bob = await round("bob");
     await bob.bet("bet_bob", 500);

@@ -1,6 +1,7 @@
 import { Prisma, type CasinoTransaction } from "@prisma/client";
 import { prisma } from "../../shared/db/prisma";
 import {
+  BetAlreadyRolledBackError,
   CreditNotAllowedError,
   IdempotencyConflictError,
   InsufficientFundsError,
@@ -107,6 +108,8 @@ async function record(
 
 export function debit(req: MoneyRequest, amount: bigint): Promise<MoneyResponse> {
   return runOnce(req, { type: "DEBIT", amount }, async (tx, balance) => {
+    // The provider already cancelled this bet: never charge it.
+    if (await findRollbackFor(req.transactionId, tx)) throw new BetAlreadyRolledBackError();
     if (balance < amount) throw new InsufficientFundsError();
     return record(tx, req, "DEBIT", amount, balance - amount);
   });
@@ -127,18 +130,22 @@ export function credit(req: MoneyRequest, amount: bigint, betTransactionId: stri
   });
 }
 
-/** Refunds a bet: only DEBITs, on their own wallet and round, at most once, before any payout. */
+/**
+ * Refunds a bet: only DEBITs, on their own wallet and round, at most once, before any payout.
+ * Unknown bet → tombstone: recorded, success, no balance change.
+ */
 export function rollback(req: MoneyRequest, betTransactionId: string): Promise<MoneyResponse> {
   const fp: Fingerprint = { type: "ROLLBACK", relatedTransactionId: betTransactionId };
 
   return runOnce(req, fp, async (tx, balance) => {
+    if (await findRollbackFor(betTransactionId, tx)) throw new RollbackNotAllowedError("Bet was already rolled back");
+
     const bet = await findByExternalId(betTransactionId, tx);
-    if (!bet) throw new RollbackNotAllowedError("Bet not found");
+    if (!bet) return record(tx, req, "ROLLBACK", BigInt(0), balance, betTransactionId, { tombstone: true });
     if (bet.transactionType !== "DEBIT") throw new RollbackNotAllowedError("Only bets can be rolled back");
     if (bet.walletId !== req.walletId || bet.roundId !== req.roundId) {
       throw new RollbackNotAllowedError("Bet is not on this wallet and round");
     }
-    if (await findRollbackFor(betTransactionId, tx)) throw new RollbackNotAllowedError("Bet was already rolled back");
     if (await findCreditInRound(req.walletId, req.roundId, tx)) {
       throw new RollbackNotAllowedError("Round already has a payout");
     }
