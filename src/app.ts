@@ -1,4 +1,5 @@
 import express from "express";
+import { casinoRouter } from "./casino/casino.router";
 import { prisma } from "./shared/db/prisma";
 import { errorHandler, notFoundHandler } from "./shared/errors/errorHandler";
 import { jsonBody } from "./shared/http/jsonBody";
@@ -19,6 +20,8 @@ export function createApp() {
       res.status(503).json({ status: "degraded", database: "down" });
     }
   });
+
+  app.use("/casino", casinoRouter);
 
   app.use(notFoundHandler);
   app.use(errorHandler);
