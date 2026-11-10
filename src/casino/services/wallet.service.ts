@@ -1,12 +1,20 @@
 import { Prisma, type CasinoTransaction } from "@prisma/client";
 import { prisma } from "../../shared/db/prisma";
 import {
+  BetAlreadyRolledBackError,
   CreditNotAllowedError,
   IdempotencyConflictError,
   InsufficientFundsError,
+  RollbackNotAllowedError,
   WalletNotFoundError,
 } from "../errors";
-import { createLedgerRow, findByExternalId, type TransactionType } from "../repositories/transaction.repository";
+import {
+  createLedgerRow,
+  findByExternalId,
+  findCreditInRound,
+  findRollbackFor,
+  type TransactionType,
+} from "../repositories/transaction.repository";
 import { lockWallet, setBalance } from "../repositories/wallet.repository";
 
 export interface MoneyRequest {
@@ -100,12 +108,14 @@ async function record(
 
 export function debit(req: MoneyRequest, amount: bigint): Promise<MoneyResponse> {
   return runOnce(req, { type: "DEBIT", amount }, async (tx, balance) => {
+    // The provider already cancelled this bet: never charge it.
+    if (await findRollbackFor(req.transactionId, tx)) throw new BetAlreadyRolledBackError();
     if (balance < amount) throw new InsufficientFundsError();
     return record(tx, req, "DEBIT", amount, balance - amount);
   });
 }
 
-/** A payout must point at an accepted bet on the same wallet and round. */
+/** A payout must point at an accepted, not rolled back bet on the same wallet and round. */
 export function credit(req: MoneyRequest, amount: bigint, betTransactionId: string): Promise<MoneyResponse> {
   const fp: Fingerprint = { type: "CREDIT", amount, relatedTransactionId: betTransactionId };
 
@@ -115,7 +125,32 @@ export function credit(req: MoneyRequest, amount: bigint, betTransactionId: stri
       throw new CreditNotAllowedError("Payout must reference an accepted bet on this wallet");
     }
     if (bet.roundId !== req.roundId) throw new CreditNotAllowedError("Payout and bet are in different rounds");
+    if (await findRollbackFor(betTransactionId, tx)) throw new CreditNotAllowedError("Bet was rolled back");
 
     return record(tx, req, "CREDIT", amount, balance + amount, betTransactionId);
+  });
+}
+
+/**
+ * Refunds a bet: only DEBITs, on their own wallet and round, at most once, before any payout.
+ * Unknown bet → tombstone: recorded, success, no balance change.
+ */
+export function rollback(req: MoneyRequest, betTransactionId: string): Promise<MoneyResponse> {
+  const fp: Fingerprint = { type: "ROLLBACK", relatedTransactionId: betTransactionId };
+
+  return runOnce(req, fp, async (tx, balance) => {
+    if (await findRollbackFor(betTransactionId, tx)) throw new RollbackNotAllowedError("Bet was already rolled back");
+
+    const bet = await findByExternalId(betTransactionId, tx);
+    if (!bet) return record(tx, req, "ROLLBACK", BigInt(0), balance, betTransactionId, { tombstone: true });
+    if (bet.transactionType !== "DEBIT") throw new RollbackNotAllowedError("Only bets can be rolled back");
+    if (bet.walletId !== req.walletId || bet.roundId !== req.roundId) {
+      throw new RollbackNotAllowedError("Bet is not on this wallet and round");
+    }
+    if (await findCreditInRound(req.walletId, req.roundId, tx)) {
+      throw new RollbackNotAllowedError("Round already has a payout");
+    }
+
+    return record(tx, req, "ROLLBACK", bet.amount, balance + bet.amount, betTransactionId, { tombstone: false });
   });
 }

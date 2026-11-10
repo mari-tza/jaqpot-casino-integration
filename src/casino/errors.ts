@@ -48,3 +48,16 @@ export class CreditNotAllowedError extends AppError {
     super(409, "CREDIT_NOT_ALLOWED", reason);
   }
 }
+
+export class RollbackNotAllowedError extends AppError {
+  constructor(reason: string) {
+    super(409, "ROLLBACK_NOT_ALLOWED", reason);
+  }
+}
+
+/** Its tombstone rollback arrived first. */
+export class BetAlreadyRolledBackError extends AppError {
+  constructor() {
+    super(409, "BET_ALREADY_ROLLED_BACK", "This bet was already rolled back");
+  }
+}

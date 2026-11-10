@@ -52,10 +52,10 @@ Build the system in small, reviewable milestones. Money correctness first
 - [x] Session checks: user owns the session, currency matches the wallet
 
 ### M4 — Rollback rules (optional in the spec)
-- [ ] Only bets can be rolled back, never payouts
-- [ ] No rollback once the round has a payout
-- [ ] A bet is refunded at most once
-- [ ] Tombstone when the bet is unknown; a bet arriving after its tombstone is rejected
+- [x] Only bets can be rolled back, never payouts
+- [x] No rollback once the round has a payout
+- [x] A bet is refunded at most once
+- [x] Tombstone when the bet is unknown; a bet arriving after its tombstone is rejected
 
 ### M5 — Launch flow
 - [ ] `POST /casino/launchGame` validates player, wallet and game, creates the casino session

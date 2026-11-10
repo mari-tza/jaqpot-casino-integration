@@ -2,6 +2,7 @@ import { randomUUID } from "node:crypto";
 import { afterEach, describe, expect, it } from "vitest";
 import { prisma } from "../../src/shared/db/prisma";
 import { balanceOf, casinoPost, openSession, resetCasino } from "../helpers/casino";
+import { round } from "../helpers/round";
 
 afterEach(resetCasino);
 
@@ -68,5 +69,48 @@ describe("concurrent callbacks", () => {
 
     expect(results.map((r) => r.status).sort()).toEqual([200, 409]);
     expect(await prisma.casinoTransaction.count()).toBe(1);
+  });
+
+  it("refunds a bet once when 5 different rollbacks for it arrive together", async () => {
+    const r = await round();
+    await r.bet("bet_a", 500);
+
+    const results = await parallel(5, () => r.rollback("bet_a"));
+
+    expect(results.filter((x) => x.status === 200)).toHaveLength(1);
+    expect(await balanceOf("alice")).toBe(BigInt(100_000));
+  });
+
+  it("never records a rollback after a payout in the same round, whichever wins the race", async () => {
+    for (let i = 0; i < 5; i++) {
+      const r = await round();
+      await r.bet(`a_${i}`, 500);
+      await r.bet(`b_${i}`, 1000);
+
+      const [rb, win] = await Promise.all([r.rollback(`b_${i}`, `rb_${i}`), r.win(`win_${i}`, 2000, `a_${i}`)]);
+
+      expect(win.status).toBe(200);
+      if (rb.status === 200) {
+        const row = (id: string) =>
+          prisma.casinoTransaction.findUniqueOrThrow({ where: { externalTransactionId: id } });
+        expect((await row(`rb_${i}`)).id).toBeLessThan((await row(`win_${i}`)).id);
+      } else {
+        expect(rb.body.message).toBe("Round already has a payout");
+      }
+    }
+  });
+
+  it("ends with the bet not charged when it races its own tombstone", async () => {
+    for (let i = 0; i < 5; i++) {
+      const r = await round();
+
+      const [bet, rb] = await Promise.all([r.bet(`bet_${i}`, 700), r.rollback(`bet_${i}`)]);
+
+      expect(rb.status).toBe(200);
+      if (bet.status === 200)
+        expect(rb.body.tombstone).toBe(false); // bet first → refunded
+      else expect(bet.body.error).toBe("BET_ALREADY_ROLLED_BACK"); // tombstone first → bet rejected
+      expect(await balanceOf("alice")).toBe(BigInt(100_000));
+    }
   });
 });
