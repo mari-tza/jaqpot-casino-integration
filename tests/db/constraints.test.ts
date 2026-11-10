@@ -4,7 +4,7 @@ import { prisma } from "../../src/shared/db/prisma";
 
 const ROLLBACK = new Error("rollback test transaction");
 
-/** Runs fn in a transaction that is always rolled back, so tests leave no rows behind. */
+/** Always rolls back, so tests leave no rows. */
 async function inRolledBackTx(fn: (tx: Prisma.TransactionClient) => Promise<void>) {
   await prisma
     .$transaction(async (tx) => {
@@ -16,7 +16,6 @@ async function inRolledBackTx(fn: (tx: Prisma.TransactionClient) => Promise<void
     });
 }
 
-/** A session on alice's wallet, to attach ledger rows to. */
 async function aliceSession(tx: Prisma.TransactionClient) {
   const wallet = await tx.casinoWallet.findFirstOrThrow({ where: { user: { username: "alice" } } });
   const game = await tx.casinoGame.findFirstOrThrow();

@@ -1,8 +1,11 @@
 import "dotenv/config";
 import { createApp } from "./app";
+import { config } from "./shared/config";
+import { logger } from "./shared/logger";
 
-const port = Number(process.env.PORT ?? 3000);
+// Fails fast if a secret is missing.
+const { PORT } = config();
 
-createApp().listen(port, () => {
-  console.log(`Server listening on http://localhost:${port}`);
+createApp().listen(PORT, () => {
+  logger.info({ port: PORT }, `Server listening on http://localhost:${PORT}`);
 });

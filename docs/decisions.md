@@ -62,3 +62,39 @@ the session by foreign key instead of storing the session id as text.
 **Why.** The provider needs to know where and how to call the casino back, and
 `/provider/simulate` must confirm that the session it receives was really created
 by `/provider/launch` for that player.
+
+## D7 — Signatures cover the raw request bytes
+
+**Context.** The spec signs `JSON.stringify(body)` with HMAC-SHA256, one secret and
+header per direction.
+
+**Decision.** Senders serialize once and send exactly the bytes they signed. Receivers
+verify against the raw body captured by the JSON parser, not a re-serialization of
+the parsed object. Comparison is constant-time; an empty secret never validates; the
+server does not start without both secrets.
+
+**Why.** Re-serializing on the receiver only works if both sides produce byte-identical
+JSON. Key order or whitespace from a different client would break verification. Signing
+`JSON.stringify(body)` and sending that string stays compatible with the spec's snippet.
+
+**Not added.** A timestamp or nonce in the signature would block replays, but it changes
+the signing scheme defined by the spec. Replays of money calls are already harmless:
+every debit, credit and rollback is idempotent by `transactionId` (M3).
+
+## D8 — One error format
+
+**Decision.** Every error response is `{ "error": CODE, "message": text, "details"?: … }`
+with a stable upper-case code. Validation errors are 400, signature errors 401,
+business rule rejections 409/422, unexpected errors 500 with a generic message.
+
+**Why.** The provider decides whether to retry from the status and code, so they must be
+predictable. Internal messages of unexpected errors never reach the caller.
+
+## D9 — Request ids across both systems
+
+**Decision.** Each request gets an id from `x-request-id` (if well-formed) or a new UUID.
+It is returned in the response, attached to every log line, and forwarded on casino ↔
+provider calls.
+
+**Why.** One simulated round crosses both systems several times; a shared id makes the
+whole round traceable in the logs.

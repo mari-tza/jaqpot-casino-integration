@@ -4,10 +4,11 @@ export default defineConfig({
   test: {
     environment: "node",
     include: ["tests/**/*.test.ts"],
-    // Load .env locally; CI provides the variables directly.
+    // .env locally; CI sets the variables.
     setupFiles: ["dotenv/config"],
-    // Test files share one database, so run them one at a time.
+    // One shared database.
     fileParallelism: false,
     testTimeout: 30_000,
+    env: { LOG_LEVEL: "silent" },
   },
 });

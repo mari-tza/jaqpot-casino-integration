@@ -1,7 +1,4 @@
-/**
- * Development seed. Safe to run more than once: registries are kept in sync
- * with the environment, but existing balances are never reset.
- */
+/** Dev seed. Safe to re-run: never resets balances. */
 import "dotenv/config";
 import { PrismaClient } from "@prisma/client";
 
@@ -20,7 +17,7 @@ const PLAYERS = [
 ];
 
 async function seedCasino() {
-  // How the casino reaches the provider, and the secret it signs with (x-provider-signature).
+  // Casino → provider: endpoint and secret.
   const provider = await prisma.casinoGameProvider.upsert({
     where: { code: "JAQPOT" },
     update: { apiEndpoint: `${baseUrl}/provider`, secretKey: providerSecret },
@@ -48,7 +45,7 @@ async function seedCasino() {
 }
 
 async function seedProvider() {
-  // How the provider reaches the casino, and the secret it signs with (x-casino-signature).
+  // Provider → casino: endpoint and secret.
   await prisma.providerCasino.upsert({
     where: { casinoCode: "HOUSE" },
     update: { casinoApiEndpoint: `${baseUrl}/casino`, casinoSecret },
