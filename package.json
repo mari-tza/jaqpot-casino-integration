@@ -12,6 +12,7 @@
     "build": "tsc",
     "start": "node dist/server.js",
     "simulate": "tsx scripts/simulate.ts",
+    "call": "tsx scripts/call.ts",
     "typecheck": "tsc --noEmit",
     "lint": "eslint .",
     "format": "prettier --write \"**/*.{ts,mjs,json}\"",
