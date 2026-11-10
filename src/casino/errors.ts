@@ -61,3 +61,10 @@ export class BetAlreadyRolledBackError extends AppError {
     super(409, "BET_ALREADY_ROLLED_BACK", "This bet was already rolled back");
   }
 }
+
+/** The provider refused, failed or did not answer in time. */
+export class ProviderError extends AppError {
+  constructor(message: string, details?: { status?: number; error?: string }) {
+    super(502, "PROVIDER_ERROR", message, details);
+  }
+}
