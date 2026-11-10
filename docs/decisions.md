@@ -184,13 +184,15 @@ provider can always retry instead of guessing.
 
 **Decision.** Every money call is written to `provider_bets` as `PENDING` first, then
 updated to `ACCEPTED` (with the casino's balance and answer) or `FAILED` (with the
-casino's error). A rolled back bet is marked `ROLLED_BACK`. If the casino rejects a call
-mid-round, the round is `FAILED` and its accepted bets are rolled back, unless the round
-already has a payout. If the casino does not answer, rows stay `PENDING`.
+casino's error). A rolled back bet is marked `ROLLED_BACK`. If a call fails mid-round,
+the round is `FAILED` and its accepted and `PENDING` bets are rolled back, unless the
+round already has a payout.
 
-**Why.** A `PENDING` row is the provider's record of a call with an unknown outcome:
-what a reconciliation job would resend with the same id. Refunding a failed round keeps
-the player from losing a bet for a round that never finished.
+**Why.** A `PENDING` row is a call with an unknown outcome: the casino may have applied
+it without answering. Rolling it back is safe either way: the casino refunds it, or
+records a tombstone and refuses the bet if it arrives later (D13). Refunding a failed
+round keeps the player from losing a bet for a round that never finished. Rows stay
+`PENDING` only if the casino is still down for the rollback.
 
 ## D18 — Scripted round
 

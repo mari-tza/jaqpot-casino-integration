@@ -133,6 +133,41 @@ describe("provider rounds", () => {
     expect((await prisma.providerGameRound.findUniqueOrThrow({ where: { id: round.id } })).status).toBe("FAILED");
   });
 
+  it("refunds a bet the casino applied but never answered", async () => {
+    const round = await startRound();
+    const realFetch = globalThis.fetch;
+    const lostAnswers = vi.spyOn(globalThis, "fetch").mockImplementation(async (...args) => {
+      await realFetch(...args);
+      throw new TypeError("socket hang up");
+    });
+    await expect(send(round, bet("bet_1", 1000))).rejects.toMatchObject({ code: "CASINO_UNAVAILABLE" });
+    lostAnswers.mockRestore();
+    expect(await balanceOf("alice")).toBe(BigInt(99_000));
+
+    await failRound(round);
+
+    expect((await row("bet_1")).status).toBe("ROLLED_BACK");
+    expect(await balanceOf("alice")).toBe(BigInt(100_000));
+  });
+
+  it("cancels a pending bet the casino never saw, so it is refused if it arrives late", async () => {
+    const round = await startRound();
+    const casino = round.session.customer.casino;
+    const endpoint = casino.casinoApiEndpoint;
+    casino.casinoApiEndpoint = "http://127.0.0.1:1";
+    await expect(send(round, bet("bet_1", 1000))).rejects.toMatchObject({ code: "CASINO_UNAVAILABLE" });
+    casino.casinoApiEndpoint = endpoint;
+
+    await failRound(round);
+
+    expect((await row("bet_1")).status).toBe("ROLLED_BACK");
+    await expect(send(round, bet("bet_1", 1000))).rejects.toMatchObject({
+      status: 409,
+      body: { error: "BET_ALREADY_ROLLED_BACK" },
+    });
+    expect(await balanceOf("alice")).toBe(BigInt(100_000));
+  });
+
   it("keeps the bets of a failed round that already has a payout", async () => {
     const round = await startRound();
     await send(round, bet("bet_1", 1000));
