@@ -240,7 +240,8 @@ Each response carries an `x-request-id` header; send your own to trace a call ac
 
 Out of scope for the test, in the order I would take them:
 
-- A reconciliation job that resends provider calls left `PENDING` (same id, so it is safe).
+- A reconciliation job for calls still `PENDING` because the casino was down even for the
+  failed round's rollbacks (same id, so resending is safe).
 - A timestamp and nonce in the signed payload to refuse replays outright; today a replay is
   harmless because every money call is idempotent ([D7](docs/decisions.md#d7--signatures-cover-the-raw-request-bytes)).
 - Player authentication on `launchGame` and `simulateRound`.

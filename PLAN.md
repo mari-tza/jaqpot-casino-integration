@@ -75,6 +75,11 @@ Build the system in small, reviewable milestones. Money correctness first
 - [x] Helper to send signed requests by hand
 - [x] README: setup, single command to run a round, API reference, error codes
 
+### M8 — Review fixes
+- [x] A failed round also rolls back bets left `PENDING`
+- [x] A `transactionId` reused in another round is `409 IDEMPOTENCY_CONFLICT`
+- [x] `npm run simulate` prints a clear error when the server does not answer JSON
+
 ## Requirements traceability
 
 | Requirement (technical test) | Milestone |
@@ -82,7 +87,7 @@ Build the system in small, reviewable milestones. Money correctness first
 | `/casino/*` and `/provider/*` namespaces, logically separated systems | M0, M5 |
 | `CASINO_*` / `PROVIDER_*` tables, no cross-domain writes | M1 |
 | Wallet balances with transactional integrity and locking | M3 |
-| Idempotent debit / credit / rollback by `transactionId` | M3, M4 |
+| Idempotent debit / credit / rollback by `transactionId` | M3, M4, M8 |
 | Rollback rules and tombstones | M4 |
 | HMAC-SHA256, one secret and header per direction | M2 |
 | `launchGame` → `provider/launch` | M5 |

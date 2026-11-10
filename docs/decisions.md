@@ -124,11 +124,13 @@ someone else's cached result would hide a provider bug.
 ## D12 — Payouts point at a bet
 
 **Decision.** A credit must reference (`relatedTransactionId`) an accepted debit on the
-same wallet and round. Zero payouts are accepted.
+same wallet and round. Zero payouts are accepted, and so is more than one payout per bet,
+each with its own `transactionId`.
 
 **Why.** The spec asks for credits linked to their round and bet. Rejecting a payout for a
 bet the casino never accepted stops money from being created out of nothing. Zero
-payouts are how providers usually close a lost round.
+payouts are how providers usually close a lost round. Several payouts on one bet are
+normal for bonus features; a resent payout has the same id and is replayed, not paid twice.
 
 ## D13 — Rollback rules
 
