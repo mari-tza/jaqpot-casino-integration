@@ -138,10 +138,10 @@ normal for bonus features; a resent payout has the same id and is replayed, not 
 
 | Case | Result |
 |---|---|
-| Bet unknown | Tombstone: zero-amount ROLLBACK row, `tombstone: true`, balance unchanged |
+| Bet unknown, round not paid | Tombstone: zero-amount ROLLBACK row, `tombstone: true`, balance unchanged |
 | Bet arrives after its tombstone | Debit rejected, `409 BET_ALREADY_ROLLED_BACK` |
 | Target is a payout | `409` — only bets can be rolled back |
-| Round already has a payout (even 0) | `409` |
+| Round already has a payout (even 0) | `409`, for an unknown bet too (no tombstone) |
 | Bet already rolled back (new rollback id) | `409`; the same id replays |
 | Bet on another wallet or round | `409` |
 | Payout for a rolled-back bet | `409 CREDIT_NOT_ALLOWED` |
