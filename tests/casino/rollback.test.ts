@@ -143,6 +143,18 @@ describe("POST /casino/rollback", () => {
     });
   });
 
+  it("blocks a payout for a rolled-back bet", async () => {
+    const r = await round();
+    await r.bet("bet_a", 500);
+    await r.rollback("bet_a");
+
+    const res = await r.win("win_a", 2000, "bet_a");
+
+    expect(res.status).toBe(409);
+    expect(res.body.message).toBe("Bet was rolled back");
+    expect(await balanceOf("alice")).toBe(BigInt(100_000));
+  });
+
   it("rejects another player's bet", async () => {
     const bob = await round("bob");
     await bob.bet("bet_bob", 500);

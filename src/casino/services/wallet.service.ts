@@ -115,7 +115,7 @@ export function debit(req: MoneyRequest, amount: bigint): Promise<MoneyResponse>
   });
 }
 
-/** A payout must point at an accepted bet on the same wallet and round. */
+/** A payout must point at an accepted, not rolled back bet on the same wallet and round. */
 export function credit(req: MoneyRequest, amount: bigint, betTransactionId: string): Promise<MoneyResponse> {
   const fp: Fingerprint = { type: "CREDIT", amount, relatedTransactionId: betTransactionId };
 
@@ -125,6 +125,7 @@ export function credit(req: MoneyRequest, amount: bigint, betTransactionId: stri
       throw new CreditNotAllowedError("Payout must reference an accepted bet on this wallet");
     }
     if (bet.roundId !== req.roundId) throw new CreditNotAllowedError("Payout and bet are in different rounds");
+    if (await findRollbackFor(betTransactionId, tx)) throw new CreditNotAllowedError("Bet was rolled back");
 
     return record(tx, req, "CREDIT", amount, balance + amount, betTransactionId);
   });
