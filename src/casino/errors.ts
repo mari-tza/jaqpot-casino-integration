@@ -48,3 +48,9 @@ export class CreditNotAllowedError extends AppError {
     super(409, "CREDIT_NOT_ALLOWED", reason);
   }
 }
+
+export class RollbackNotAllowedError extends AppError {
+  constructor(reason: string) {
+    super(409, "ROLLBACK_NOT_ALLOWED", reason);
+  }
+}

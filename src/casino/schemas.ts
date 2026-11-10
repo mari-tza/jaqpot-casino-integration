@@ -25,3 +25,9 @@ export const CreditBody = SessionFields.extend({
   amount: z.number().int().nonnegative().max(Number.MAX_SAFE_INTEGER),
   relatedTransactionId: ExternalId,
 });
+
+export const RollbackBody = SessionFields.extend({
+  transactionId: ExternalId,
+  roundId: ExternalId,
+  relatedTransactionId: ExternalId,
+});

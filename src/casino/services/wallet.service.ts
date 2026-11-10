@@ -4,9 +4,15 @@ import {
   CreditNotAllowedError,
   IdempotencyConflictError,
   InsufficientFundsError,
+  RollbackNotAllowedError,
   WalletNotFoundError,
 } from "../errors";
-import { createLedgerRow, findByExternalId, type TransactionType } from "../repositories/transaction.repository";
+import {
+  createLedgerRow,
+  findByExternalId,
+  findRollbackFor,
+  type TransactionType,
+} from "../repositories/transaction.repository";
 import { lockWallet, setBalance } from "../repositories/wallet.repository";
 
 export interface MoneyRequest {
@@ -117,5 +123,22 @@ export function credit(req: MoneyRequest, amount: bigint, betTransactionId: stri
     if (bet.roundId !== req.roundId) throw new CreditNotAllowedError("Payout and bet are in different rounds");
 
     return record(tx, req, "CREDIT", amount, balance + amount, betTransactionId);
+  });
+}
+
+/** Refunds a bet: only DEBITs, on their own wallet and round, at most once. */
+export function rollback(req: MoneyRequest, betTransactionId: string): Promise<MoneyResponse> {
+  const fp: Fingerprint = { type: "ROLLBACK", relatedTransactionId: betTransactionId };
+
+  return runOnce(req, fp, async (tx, balance) => {
+    const bet = await findByExternalId(betTransactionId, tx);
+    if (!bet) throw new RollbackNotAllowedError("Bet not found");
+    if (bet.transactionType !== "DEBIT") throw new RollbackNotAllowedError("Only bets can be rolled back");
+    if (bet.walletId !== req.walletId || bet.roundId !== req.roundId) {
+      throw new RollbackNotAllowedError("Bet is not on this wallet and round");
+    }
+    if (await findRollbackFor(betTransactionId, tx)) throw new RollbackNotAllowedError("Bet was already rolled back");
+
+    return record(tx, req, "ROLLBACK", bet.amount, balance + bet.amount, betTransactionId, { tombstone: false });
   });
 }

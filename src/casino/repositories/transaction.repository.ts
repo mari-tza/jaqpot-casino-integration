@@ -12,3 +12,10 @@ export function findByExternalId(externalTransactionId: string, db: Db = prisma)
 export function createLedgerRow(db: Db, data: Prisma.CasinoTransactionUncheckedCreateInput) {
   return db.casinoTransaction.create({ data });
 }
+
+/** Any rollback (refund or tombstone) that targets this bet. */
+export function findRollbackFor(betTransactionId: string, db: Db = prisma) {
+  return db.casinoTransaction.findFirst({
+    where: { transactionType: "ROLLBACK", relatedExternalTransactionId: betTransactionId },
+  });
+}
