@@ -9,7 +9,7 @@ const Env = z.object({
 
 export type Config = z.infer<typeof Env>;
 
-/** Parses the environment and fails with every problem listed. */
+/** Throws listing every invalid variable. */
 export function loadConfig(env: NodeJS.ProcessEnv = process.env): Config {
   const result = Env.safeParse(env);
   if (!result.success) {
@@ -21,7 +21,7 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): Config {
 
 let cached: Config | undefined;
 
-/** Loaded on first use, so tests can set the environment before importing the app. */
+/** Lazy, so tests can set the environment first. */
 export function config(): Config {
   cached ??= loadConfig();
   return cached;

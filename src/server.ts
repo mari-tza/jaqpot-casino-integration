@@ -3,7 +3,7 @@ import { createApp } from "./app";
 import { config } from "./shared/config";
 import { logger } from "./shared/logger";
 
-// Fail fast on a missing or weak secret instead of rejecting every request later.
+// Fails fast if a secret is missing.
 const { PORT } = config();
 
 createApp().listen(PORT, () => {

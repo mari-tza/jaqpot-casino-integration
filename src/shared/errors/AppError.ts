@@ -1,7 +1,4 @@
-/**
- * An expected failure with a stable, machine-readable code.
- * Domain errors extend this; anything else is treated as a 500.
- */
+/** Expected error with a stable code. Anything else becomes a 500. */
 export class AppError extends Error {
   constructor(
     readonly status: number,

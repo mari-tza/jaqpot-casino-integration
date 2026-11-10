@@ -4,7 +4,7 @@ import request from "supertest";
 import { describe, expect, it } from "vitest";
 import { requestContext } from "../../src/shared/http/requestContext";
 
-/** App with a logger that writes JSON lines into an array. */
+/** Captures log lines in an array. */
 function appWithCapturedLogs() {
   const lines: Record<string, unknown>[] = [];
   const logger = pino({ level: "info" }, { write: (line: string) => lines.push(JSON.parse(line)) });

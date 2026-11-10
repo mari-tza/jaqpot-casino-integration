@@ -6,7 +6,6 @@ import { createApp } from "../../src/app";
 import { AppError } from "../../src/shared/errors/AppError";
 import { errorHandler, notFoundHandler } from "../../src/shared/errors/errorHandler";
 
-/** Minimal app whose routes throw each kind of error. */
 function appThatThrows() {
   const app = express();
   app.use(express.json());

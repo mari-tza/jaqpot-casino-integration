@@ -3,7 +3,6 @@ import { ZodError } from "zod";
 import { logger } from "../logger";
 import { AppError, NotFoundError } from "./AppError";
 
-/** Body of every error response. */
 export interface ErrorBody {
   error: string;
   message: string;
@@ -21,12 +20,12 @@ export const errorHandler: ErrorRequestHandler = (err, req, res, _next) => {
   if (err instanceof ZodError) {
     return send(400, { error: "VALIDATION_ERROR", message: "Invalid request body", details: err.issues });
   }
-  // Thrown by express.json() on malformed JSON.
+  // express.json() parse error
   if (err?.type === "entity.parse.failed") {
     return send(400, { error: "INVALID_JSON", message: "Request body is not valid JSON" });
   }
 
-  // Unexpected: log it with the request id, never leak internals to the caller.
+  // Unexpected: log it, hide the details.
   (req.log ?? logger).error({ err }, "unhandled error");
   return send(500, { error: "INTERNAL_ERROR", message: "Unexpected error" });
 };

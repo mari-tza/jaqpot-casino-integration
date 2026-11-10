@@ -4,10 +4,7 @@ import { errorHandler, notFoundHandler } from "./shared/errors/errorHandler";
 import { jsonBody } from "./shared/http/jsonBody";
 import { requestContext } from "./shared/http/requestContext";
 
-/**
- * Builds the HTTP app without starting a server, so tests can mount it directly.
- * Casino routes will live under /casino/* and provider routes under /provider/*.
- */
+/** Builds the app without listening, so tests can mount it. */
 export function createApp() {
   const app = express();
 

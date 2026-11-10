@@ -5,11 +5,7 @@ import { logger as rootLogger } from "../logger";
 
 const SAFE_ID = /^[\w.:-]{1,100}$/;
 
-/**
- * Gives every request an id (reused from x-request-id when it looks safe),
- * a child logger that carries it, and one log line when the response is sent.
- * The id is echoed back and forwarded on casino ↔ provider calls.
- */
+/** Request id (from x-request-id or new), a logger bound to it, one log line per request. */
 export function requestContext(logger: Logger = rootLogger): RequestHandler {
   return (req, res, next) => {
     const incoming = req.header("x-request-id");

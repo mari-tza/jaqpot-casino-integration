@@ -1,6 +1,6 @@
 import express, { type Request } from "express";
 
-/** JSON parser that also keeps the raw bytes: signatures are checked against what was sent. */
+/** express.json that keeps the raw bytes for signature checks. */
 export function jsonBody() {
   return express.json({
     limit: "100kb",
