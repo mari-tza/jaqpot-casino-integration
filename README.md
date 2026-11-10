@@ -50,7 +50,8 @@ All callbacks are `POST`, signed with `x-casino-signature` (`CASINO_SECRET`), an
 |---|---|---|
 | `/casino/getBalance` | – | Read-only |
 | `/casino/debit` | `transactionId`, `roundId`, `amount` | Atomic; checks funds and the game's bet limits |
-| `/casino/credit` | `transactionId`, `roundId`, `amount`, `relatedTransactionId` | Must reference an accepted bet in the same round; `amount` may be 0 |
+| `/casino/credit` | `transactionId`, `roundId`, `amount`, `relatedTransactionId` | Must reference an accepted, not rolled back bet in the same round; `amount` may be 0 |
+| `/casino/rollback` | `transactionId`, `roundId`, `relatedTransactionId` | Refunds a bet; see rollback rules |
 
 ```json
 // POST /casino/debit
@@ -62,6 +63,10 @@ All callbacks are `POST`, signed with `x-casino-signature` (`CASINO_SECRET`), an
 **Idempotency.** Sending the same `transactionId` again returns the first response and moves
 no money. Reusing it with a different amount, type or bet returns `409 IDEMPOTENCY_CONFLICT`.
 
+**Rollback rules.** Only bets, at most once, never after the round has a payout. A rollback
+for an unknown bet records a **tombstone** (`"tombstone": true`, balance unchanged), and that
+bet is rejected if it arrives later. Details in [D13](docs/decisions.md#d13--rollback-rules).
+
 | Status | `error` | When |
 |---|---|---|
 | 400 | `VALIDATION_ERROR` | Body fails validation |
@@ -69,6 +74,7 @@ no money. Reusing it with a different amount, type or bet returns `409 IDEMPOTEN
 | 403 | `SESSION_USER_MISMATCH` | `userId` does not own the session |
 | 404 | `SESSION_NOT_FOUND` | Unknown or inactive session |
 | 409 | `IDEMPOTENCY_CONFLICT`, `CREDIT_NOT_ALLOWED` | Reused id, or payout without a valid bet |
+| 409 | `ROLLBACK_NOT_ALLOWED`, `BET_ALREADY_ROLLED_BACK` | Rollback rule broken, or bet arriving after its tombstone |
 | 422 | `INSUFFICIENT_FUNDS`, `BET_LIMIT_EXCEEDED`, `CURRENCY_MISMATCH` | Bet cannot be accepted |
 
 ## Configuration

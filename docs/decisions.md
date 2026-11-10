@@ -129,3 +129,21 @@ same wallet and round. Zero payouts are accepted.
 **Why.** The spec asks for credits linked to their round and bet. Rejecting a payout for a
 bet the casino never accepted stops money from being created out of nothing. Zero
 payouts are how providers usually close a lost round.
+
+## D13 — Rollback rules
+
+**Decision.** `POST /casino/rollback` runs on the same lock-then-check path as debit and credit:
+
+| Case | Result |
+|---|---|
+| Bet unknown | Tombstone: zero-amount ROLLBACK row, `tombstone: true`, balance unchanged |
+| Bet arrives after its tombstone | Debit rejected, `409 BET_ALREADY_ROLLED_BACK` |
+| Target is a payout | `409` — only bets can be rolled back |
+| Round already has a payout (even 0) | `409` |
+| Bet already rolled back (new rollback id) | `409`; the same id replays |
+| Bet on another wallet or round | `409` |
+| Payout for a rolled-back bet | `409 CREDIT_NOT_ALLOWED` |
+
+**Why.** The spec's rules plus the cases that would otherwise move money twice: a
+double refund, a refund followed by a payout, or a cancelled bet charged later. The
+tombstone answers success so the provider stops retrying, and leaves an audit row.
