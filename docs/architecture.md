@@ -22,8 +22,8 @@ flowchart LR
     end
 
     subgraph DB["PostgreSQL"]
-        CT[("CASINO_* tables")]
-        PT[("PROVIDER_* tables")]
+        CT[("casino_* tables")]
+        PT[("provider_* tables")]
     end
 
     Client -->|"launchGame, simulateRound"| CR
@@ -32,6 +32,8 @@ flowchart LR
     Wallet --- CT
     Rounds --- PT
 ```
+
+Table details: [database.md](database.md).
 
 ## A game round
 

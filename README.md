@@ -11,7 +11,8 @@ Backend technical test: an online casino platform and an external game provider
 ## Architecture
 
 See [docs/architecture.md](docs/architecture.md) for the component diagram, the
-round sequence and the trust rules between both systems. Technical decisions are
+round sequence and the trust rules between both systems,
+[docs/database.md](docs/database.md) for tables and constraints. Technical decisions are
 in [docs/decisions.md](docs/decisions.md).
 
 ## Development
@@ -22,13 +23,17 @@ Requirements: Node.js 18+ and Docker.
 cp .env.example .env
 npm install
 npm run db:up      # PostgreSQL in Docker (set DB_PORT if 5432 is busy)
+npm run db:deploy  # apply migrations
+npm run db:seed    # alice 1,000.00 USD, bob 500.00 USD, game slots-777
 npm run dev        # http://localhost:3000/health
 ```
 
 | Script | What it does |
 |---|---|
 | `npm run dev` | Start the server and reload on change |
-| `npm test` | Run the test suite |
+| `npm test` | Run the test suite (needs the database up, migrated and seeded) |
+| `npm run db:migrate` | Create and apply a migration after editing `schema.prisma` |
+| `npm run db:reset` | Drop, re-apply migrations and seed |
 | `npm run lint` / `npm run format` | ESLint / Prettier |
 | `npm run typecheck` | TypeScript without emitting |
 | `npm run build` / `npm start` | Compile to `dist/` and run it |

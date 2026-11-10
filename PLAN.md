@@ -31,12 +31,12 @@ Build the system in small, reviewable milestones. Money correctness first
 - [x] Pull request template
 
 ### M1 — Database schema
-- [ ] Casino tables: users, wallets, game providers, games, game sessions, transactions
-- [ ] Provider tables: games, customers, game sessions, game rounds, bets
-- [ ] Unique external transaction ids per system; round id on casino transactions
-- [ ] Prisma client wired; `/health` checks the database
-- [ ] Initial migration and seed (two players, one game, provider and casino registry)
-- [ ] Naming decision for `CASINO_*` / `PROVIDER_*` prefixes recorded
+- [x] Casino tables: users, wallets, game providers, games, game sessions, transactions
+- [x] Provider tables: games, customers, game sessions, game rounds, bets
+- [x] Unique external transaction ids per system; round id on casino transactions
+- [x] Prisma client wired; `/health` checks the database
+- [x] Initial migration and seed (two players, one game, provider and casino registry)
+- [x] Naming decision for `CASINO_*` / `PROVIDER_*` prefixes recorded
 
 ### M2 — Shared infrastructure
 - [ ] HMAC-SHA256 sign/verify over the raw request body, constant-time compare
