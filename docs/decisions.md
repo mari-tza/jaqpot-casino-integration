@@ -114,7 +114,7 @@ net for the same id arriving on two different wallets.
 
 **Decision.** `response_cache` holds the first successful response. A request that failed
 (insufficient funds, limits) leaves no row, so a retry is evaluated again. A retry whose
-payload differs from the stored one (type, amount, wallet or bet) gets
+payload differs from the stored one (type, amount, wallet, round or bet) gets
 `409 IDEMPOTENCY_CONFLICT` instead of the cached answer.
 
 **Why.** The spec asks to store the first successful result. Caching failures would

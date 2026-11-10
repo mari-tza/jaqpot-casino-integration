@@ -195,7 +195,7 @@ All callbacks are `POST`, signed with `x-casino-signature` (`CASINO_SECRET`), an
 ```
 
 **Idempotency.** Sending the same `transactionId` again returns the first response and moves
-no money. Reusing it with a different amount, type or bet returns `409 IDEMPOTENCY_CONFLICT`.
+no money. Reusing it with a different amount, type, round or bet returns `409 IDEMPOTENCY_CONFLICT`.
 
 **Rollback rules.** Only bets, at most once, never after the round has a payout. A rollback
 for an unknown bet records a **tombstone** (`"tombstone": true`, balance unchanged), and that
