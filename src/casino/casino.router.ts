@@ -6,11 +6,13 @@ import { debitRoute } from "./routes/debit.route";
 import { getBalance } from "./routes/getBalance.route";
 import { launchGame } from "./routes/launchGame.route";
 import { rollbackRoute } from "./routes/rollback.route";
+import { simulateRoundRoute } from "./routes/simulateRound.route";
 
 export const casinoRouter = Router();
 
 // Frontend
 casinoRouter.post("/launchGame", asyncRoute(launchGame));
+casinoRouter.post("/simulateRound", asyncRoute(simulateRoundRoute));
 
 // Provider callbacks
 casinoRouter.post("/getBalance", requireCasinoSignature, asyncRoute(getBalance));
