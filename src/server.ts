@@ -1,8 +1,10 @@
 import "dotenv/config";
 import { createApp } from "./app";
+import { config } from "./shared/config";
 
-const port = Number(process.env.PORT ?? 3000);
+// Fail fast on a missing or weak secret instead of rejecting every request later.
+const { PORT } = config();
 
-createApp().listen(port, () => {
-  console.log(`Server listening on http://localhost:${port}`);
+createApp().listen(PORT, () => {
+  console.log(`Server listening on http://localhost:${PORT}`);
 });

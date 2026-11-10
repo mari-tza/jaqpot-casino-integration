@@ -1,6 +1,7 @@
 import express from "express";
 import { prisma } from "./shared/db/prisma";
 import { errorHandler, notFoundHandler } from "./shared/errors/errorHandler";
+import { jsonBody } from "./shared/http/jsonBody";
 
 /**
  * Builds the HTTP app without starting a server, so tests can mount it directly.
@@ -9,7 +10,7 @@ import { errorHandler, notFoundHandler } from "./shared/errors/errorHandler";
 export function createApp() {
   const app = express();
 
-  app.use(express.json());
+  app.use(jsonBody());
 
   app.get("/health", async (_req, res) => {
     try {
