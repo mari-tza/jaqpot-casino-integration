@@ -19,3 +19,7 @@ export function findRollbackFor(betTransactionId: string, db: Db = prisma) {
     where: { transactionType: "ROLLBACK", relatedExternalTransactionId: betTransactionId },
   });
 }
+
+export function findCreditInRound(walletId: number, roundId: string, db: Db = prisma) {
+  return db.casinoTransaction.findFirst({ where: { walletId, roundId, transactionType: "CREDIT" } });
+}

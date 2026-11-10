@@ -10,6 +10,7 @@ import {
 import {
   createLedgerRow,
   findByExternalId,
+  findCreditInRound,
   findRollbackFor,
   type TransactionType,
 } from "../repositories/transaction.repository";
@@ -126,7 +127,7 @@ export function credit(req: MoneyRequest, amount: bigint, betTransactionId: stri
   });
 }
 
-/** Refunds a bet: only DEBITs, on their own wallet and round, at most once. */
+/** Refunds a bet: only DEBITs, on their own wallet and round, at most once, before any payout. */
 export function rollback(req: MoneyRequest, betTransactionId: string): Promise<MoneyResponse> {
   const fp: Fingerprint = { type: "ROLLBACK", relatedTransactionId: betTransactionId };
 
@@ -138,6 +139,9 @@ export function rollback(req: MoneyRequest, betTransactionId: string): Promise<M
       throw new RollbackNotAllowedError("Bet is not on this wallet and round");
     }
     if (await findRollbackFor(betTransactionId, tx)) throw new RollbackNotAllowedError("Bet was already rolled back");
+    if (await findCreditInRound(req.walletId, req.roundId, tx)) {
+      throw new RollbackNotAllowedError("Round already has a payout");
+    }
 
     return record(tx, req, "ROLLBACK", bet.amount, balance + bet.amount, betTransactionId, { tombstone: false });
   });

@@ -56,6 +56,49 @@ describe("POST /casino/rollback", () => {
     expect(await balanceOf("alice")).toBe(BigInt(101_500));
   });
 
+  describe("no rollback once the round has a payout", () => {
+    it("rejects rolling back the bet that was paid", async () => {
+      const r = await round();
+      await r.bet("bet_a", 500);
+      await r.win("win_a", 2000, "bet_a");
+
+      const res = await r.rollback("bet_a");
+
+      expect(res.status).toBe(409);
+      expect(res.body.message).toBe("Round already has a payout");
+    });
+
+    it("rejects rolling back any other bet of that round", async () => {
+      const r = await round();
+      await r.bet("bet_a", 500);
+      await r.bet("bet_b", 1000);
+      await r.win("win_a", 2000, "bet_a");
+
+      const res = await r.rollback("bet_b");
+
+      expect(res.status).toBe(409);
+      expect(await balanceOf("alice")).toBe(BigInt(100_500)); // 100000 - 500 - 1000 + 2000
+    });
+
+    it("a zero payout closes the round too", async () => {
+      const r = await round();
+      await r.bet("bet_a", 500);
+      await r.win("win_a", 0, "bet_a");
+
+      expect((await r.rollback("bet_a")).status).toBe(409);
+    });
+
+    it("allows a rollback before the payout", async () => {
+      const r = await round();
+      await r.bet("bet_a", 500);
+      await r.bet("bet_b", 1000);
+
+      expect((await r.rollback("bet_b")).status).toBe(200);
+      expect((await r.win("win_a", 2000, "bet_a")).status).toBe(200);
+      expect(await balanceOf("alice")).toBe(BigInt(101_500));
+    });
+  });
+
   it("rejects another player's bet", async () => {
     const bob = await round("bob");
     await bob.bet("bet_bob", 500);
