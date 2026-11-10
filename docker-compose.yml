@@ -17,5 +17,26 @@ services:
       timeout: 5s
       retries: 10
 
+  app:
+    build: .
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgresql://jaqpot:jaqpot_secret@postgres:5432/jaqpot
+      PORT: 3000
+      # Casino and provider live in this container and call each other here.
+      BASE_URL: http://localhost:3000
+      CASINO_SECRET: ${CASINO_SECRET:-casino-hmac-secret-change-in-production}
+      PROVIDER_SECRET: ${PROVIDER_SECRET:-provider-hmac-secret-change-in-production}
+      LOG_LEVEL: ${LOG_LEVEL:-info}
+    ports:
+      - "${APP_PORT:-3000}:3000"
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:3000/health || exit 1"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
 volumes:
   postgres_data:

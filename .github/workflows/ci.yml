@@ -66,3 +66,20 @@ jobs:
           npm run db:seed
 
       - run: npm test
+
+  docker:
+    name: Docker compose
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Start app and database
+        run: docker compose up -d --build --wait
+
+      - run: curl -fsS localhost:3000/health
+
+      - name: App logs
+        if: failure()
+        run: docker compose logs app
