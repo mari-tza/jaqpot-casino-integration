@@ -50,7 +50,7 @@ describe("callProvider", () => {
     await expect(callProvider({ apiEndpoint: endpoint, secret: SECRET }, "/refuse", {})).rejects.toMatchObject({
       status: 502,
       code: "PROVIDER_ERROR",
-      details: { status: 404, error: "GAME_NOT_FOUND" },
+      details: { status: 404, error: "GAME_NOT_FOUND", message: "nope" },
     });
   });
 

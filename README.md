@@ -75,8 +75,19 @@ and is not charged again. Every run uses new round and transaction ids, so re-ru
 plays a new round. The script and its rules are in [D18](docs/decisions.md#d18--scripted-round).
 
 If the casino rejects a call mid-round (for example `INSUFFICIENT_FUNDS`), the provider
-rolls back the bets it already placed and the call returns `502 PROVIDER_ERROR` with
-`details: { "status": 422, "error": "ROUND_FAILED" }`.
+rolls back the bets it already placed and the call returns `502 PROVIDER_ERROR` with the
+provider's answer, including the failed step and the casino's reason:
+
+```json
+{
+  "error": "PROVIDER_ERROR",
+  "message": "Provider /simulate failed with 422",
+  "details": {
+    "status": 422, "error": "ROUND_FAILED", "message": "Round failed at bet",
+    "details": { "roundId": "rnd_…", "step": "bet", "casinoStatus": 422, "casinoError": "INSUFFICIENT_FUNDS" }
+  }
+}
+```
 
 ## Sending requests by hand
 

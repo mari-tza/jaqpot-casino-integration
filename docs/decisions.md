@@ -155,7 +155,7 @@ tombstone answers success so the provider stops retrying, and leaves an audit ro
 **Decision.** `POST /casino/launchGame` creates the casino session, then calls
 `/provider/launch`. If the provider refuses, fails or times out (10 s), the casino
 session is deactivated and the call returns `502 PROVIDER_ERROR` with the provider's
-status and code. The endpoint is unsigned: it is called by the frontend, and player
+status, code, message and details. The endpoint is unsigned: it is called by the frontend, and player
 authentication is out of scope for this test.
 
 **Why.** The provider needs the casino session token to call back, so the casino session

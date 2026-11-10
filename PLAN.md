@@ -79,6 +79,7 @@ Build the system in small, reviewable milestones. Money correctness first
 - [x] A failed round also rolls back bets left `PENDING`
 - [x] A `transactionId` reused in another round is `409 IDEMPOTENCY_CONFLICT`
 - [x] `npm run simulate` prints a clear error when the server does not answer JSON
+- [x] A failed round says which step failed and why, in the response, the logs and `npm run simulate`
 
 ## Requirements traceability
 

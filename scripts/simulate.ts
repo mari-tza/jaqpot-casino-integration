@@ -54,7 +54,14 @@ async function main() {
   }
   if (!res.ok) {
     console.error(`simulateRound failed: ${res.status} ${data.error}: ${data.message}`);
-    if (data.details) console.error(JSON.stringify(data.details));
+    // Provider's ROUND_FAILED details, forwarded by the casino.
+    const failed = data.details?.details;
+    if (failed?.step) {
+      console.error(`Round failed at ${failed.step}: casino answered ${failed.casinoStatus} ${failed.casinoError}.`);
+      console.error("Bets already accepted in that round were rolled back.");
+    } else if (data.details) {
+      console.error(JSON.stringify(data.details));
+    }
     process.exit(1);
   }
   if (args.json) return;
