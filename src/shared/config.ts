@@ -4,6 +4,8 @@ const Env = z.object({
   PORT: z.coerce.number().int().positive().default(3000),
   CASINO_SECRET: z.string().min(16, "must be at least 16 characters"),
   PROVIDER_SECRET: z.string().min(16, "must be at least 16 characters"),
+  /** How this casino identifies itself to providers. */
+  CASINO_CODE: z.string().min(1).default("HOUSE"),
   LOG_LEVEL: z.enum(["fatal", "error", "warn", "info", "debug", "trace", "silent"]).default("info"),
 });
 

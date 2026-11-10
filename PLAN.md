@@ -58,9 +58,9 @@ Build the system in small, reviewable milestones. Money correctness first
 - [x] Tombstone when the bet is unknown; a bet arriving after its tombstone is rejected
 
 ### M5 — Launch flow
-- [ ] `POST /casino/launchGame` validates player, wallet and game, creates the casino session
-- [ ] `POST /provider/launch` creates and stores the provider session
-- [ ] Casino and provider sessions linked; casino session deactivated if the provider refuses
+- [x] `POST /casino/launchGame` validates player, wallet and game, creates the casino session
+- [x] `POST /provider/launch` creates and stores the provider session
+- [x] Casino and provider sessions linked; casino session deactivated if the provider refuses
 
 ### M6 — Simulation
 - [ ] Provider → casino client: signed calls, retries with the same transaction id

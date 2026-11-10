@@ -24,7 +24,7 @@ export async function userId(player: Player) {
   return (await prisma.casinoUser.findUniqueOrThrow({ where: { username: player } })).id;
 }
 
-/** Until /casino/launchGame exists (M5), tests open sessions directly. */
+/** Opens a session directly, without calling the provider. */
 export async function openSession(player: Player, opts: { isActive?: boolean } = {}) {
   const wallet = await prisma.casinoWallet.findFirstOrThrow({ where: { user: { username: player } } });
   const game = await prisma.casinoGame.findFirstOrThrow();
