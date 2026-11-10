@@ -39,10 +39,10 @@ Build the system in small, reviewable milestones. Money correctness first
 - [x] Naming decision for `CASINO_*` / `PROVIDER_*` prefixes recorded
 
 ### M2 — Shared infrastructure
-- [ ] HMAC-SHA256 sign/verify over the raw request body, constant-time compare
-- [ ] One middleware per direction (`x-casino-signature`, `x-provider-signature`)
-- [ ] Error model with stable error codes and a single error handler
-- [ ] Request id propagation and structured logging
+- [x] HMAC-SHA256 sign/verify over the raw request body, constant-time compare
+- [x] One middleware per direction (`x-casino-signature`, `x-provider-signature`)
+- [x] Error model with stable error codes and a single error handler
+- [x] Request id propagation and structured logging
 
 ### M3 — Casino wallet callbacks
 - [ ] `POST /casino/getBalance` (read-only)

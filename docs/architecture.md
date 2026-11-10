@@ -66,3 +66,11 @@ sequenceDiagram
 - Each direction has its own secret. The signature header names the receiver:
   `x-casino-signature` (`CASINO_SECRET`) when calling the casino,
   `x-provider-signature` (`PROVIDER_SECRET`) when calling the provider.
+
+## Every request
+
+1. `requestContext` assigns the request id and a logger bound to it.
+2. `jsonBody` parses JSON and keeps the raw bytes.
+3. Signed routes run `requireCasinoSignature` or `requireProviderSignature`
+   against those raw bytes.
+4. Errors end in one handler that returns `{ error, message, details? }`.

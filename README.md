@@ -41,6 +41,28 @@ npm run dev        # http://localhost:3000/health
 | `npm run typecheck` | TypeScript without emitting |
 | `npm run build` / `npm start` | Compile to `dist/` and run it |
 
+## Configuration
+
+| Variable | Required | Default | Purpose |
+|---|---|---|---|
+| `DATABASE_URL` | yes | – | PostgreSQL connection string |
+| `CASINO_SECRET` | yes | – | HMAC key for provider → casino calls (`x-casino-signature`), min 16 chars |
+| `PROVIDER_SECRET` | yes | – | HMAC key for casino → provider calls (`x-provider-signature`), min 16 chars |
+| `PORT` | no | `3000` | HTTP port |
+| `LOG_LEVEL` | no | `info` | pino level (`silent` in tests) |
+
+The server refuses to start if a secret is missing or too short.
+
+## Errors
+
+Every error response has the same shape:
+
+```json
+{ "error": "INVALID_SIGNATURE", "message": "Missing or invalid HMAC signature" }
+```
+
+Each response carries an `x-request-id` header; send your own to trace a call across both systems.
+
 ## Stack
 
 Node.js 20 · TypeScript · Express · PostgreSQL 16 · Prisma · Vitest · Docker
