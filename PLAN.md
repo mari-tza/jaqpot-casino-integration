@@ -45,11 +45,11 @@ Build the system in small, reviewable milestones. Money correctness first
 - [x] Request id propagation and structured logging
 
 ### M3 — Casino wallet callbacks
-- [ ] `POST /casino/getBalance` (read-only)
-- [ ] `POST /casino/debit`: funds check, bet limits, atomic update under a row lock
-- [ ] `POST /casino/credit`: linked to an accepted bet in the same round
-- [ ] Idempotency: replay the stored response, reject a reused id with a different payload, safe under concurrency
-- [ ] Session checks: user owns the session, currency matches the wallet
+- [x] `POST /casino/getBalance` (read-only)
+- [x] `POST /casino/debit`: funds check, bet limits, atomic update under a row lock
+- [x] `POST /casino/credit`: linked to an accepted bet in the same round
+- [x] Idempotency: replay the stored response, reject a reused id with a different payload, safe under concurrency
+- [x] Session checks: user owns the session, currency matches the wallet
 
 ### M4 — Rollback rules (optional in the spec)
 - [ ] Only bets can be rolled back, never payouts

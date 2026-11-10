@@ -41,6 +41,36 @@ npm run dev        # http://localhost:3000/health
 | `npm run typecheck` | TypeScript without emitting |
 | `npm run build` / `npm start` | Compile to `dist/` and run it |
 
+## Casino API — provider callbacks
+
+All callbacks are `POST`, signed with `x-casino-signature` (`CASINO_SECRET`), and take
+`sessionToken`, `userId` and `currency`. Amounts are integer cents; balances come back as strings.
+
+| Endpoint | Extra fields | Notes |
+|---|---|---|
+| `/casino/getBalance` | – | Read-only |
+| `/casino/debit` | `transactionId`, `roundId`, `amount` | Atomic; checks funds and the game's bet limits |
+| `/casino/credit` | `transactionId`, `roundId`, `amount`, `relatedTransactionId` | Must reference an accepted bet in the same round; `amount` may be 0 |
+
+```json
+// POST /casino/debit
+{ "sessionToken": "…", "userId": 1, "currency": "USD", "transactionId": "bet_1", "roundId": "r1", "amount": 500 }
+// 200
+{ "balance": "99500", "transactionId": "bet_1" }
+```
+
+**Idempotency.** Sending the same `transactionId` again returns the first response and moves
+no money. Reusing it with a different amount, type or bet returns `409 IDEMPOTENCY_CONFLICT`.
+
+| Status | `error` | When |
+|---|---|---|
+| 400 | `VALIDATION_ERROR` | Body fails validation |
+| 401 | `INVALID_SIGNATURE` | Missing or wrong signature |
+| 403 | `SESSION_USER_MISMATCH` | `userId` does not own the session |
+| 404 | `SESSION_NOT_FOUND` | Unknown or inactive session |
+| 409 | `IDEMPOTENCY_CONFLICT`, `CREDIT_NOT_ALLOWED` | Reused id, or payout without a valid bet |
+| 422 | `INSUFFICIENT_FUNDS`, `BET_LIMIT_EXCEEDED`, `CURRENCY_MISMATCH` | Bet cannot be accepted |
+
 ## Configuration
 
 | Variable | Required | Default | Purpose |

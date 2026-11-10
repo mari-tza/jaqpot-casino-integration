@@ -98,3 +98,34 @@ provider calls.
 
 **Why.** One simulated round crosses both systems several times; a shared id makes the
 whole round traceable in the logs.
+
+## D10 — Lock the wallet, then check idempotency
+
+**Decision.** Every debit and credit runs in one database transaction that starts with
+`SELECT … FROM casino_wallets WHERE id = $1 FOR UPDATE`. The `transactionId` lookup,
+the business rules, the balance update and the ledger insert all happen under that lock.
+
+**Why.** Checking for a duplicate before taking the lock lets two concurrent copies of
+the same request both pass the check. Under the lock, the second copy waits, then finds
+the first one's row and replays its response. The `UNIQUE` constraint stays as a safety
+net for the same id arriving on two different wallets.
+
+## D11 — Store successes, not failures
+
+**Decision.** `response_cache` holds the first successful response. A request that failed
+(insufficient funds, limits) leaves no row, so a retry is evaluated again. A retry whose
+payload differs from the stored one (type, amount, wallet or bet) gets
+`409 IDEMPOTENCY_CONFLICT` instead of the cached answer.
+
+**Why.** The spec asks to store the first successful result. Caching failures would
+keep rejecting a bet even after the player deposits. Answering a different payload with
+someone else's cached result would hide a provider bug.
+
+## D12 — Payouts point at a bet
+
+**Decision.** A credit must reference (`relatedTransactionId`) an accepted debit on the
+same wallet and round. Zero payouts are accepted.
+
+**Why.** The spec asks for credits linked to their round and bet. Rejecting a payout for a
+bet the casino never accepted stops money from being created out of nothing. Zero
+payouts are how providers usually close a lost round.
