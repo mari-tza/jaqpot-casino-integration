@@ -116,3 +116,115 @@ model CasinoTransaction {
   @@index([relatedExternalTransactionId])
   @@map("casino_transactions")
 }
+
+// ═══════════════════════════════════════════════════════════════════
+//  PROVIDER DOMAIN (provider_*)
+//  Never stores or computes a balance of its own: casino_balance_after
+//  is a copy of what the casino answered. Only provider code touches it.
+// ═══════════════════════════════════════════════════════════════════
+
+/// Provider game catalog.
+model ProviderGame {
+  id        Int      @id @default(autoincrement())
+  gameId    String   @unique @map("game_id") @db.VarChar(100)
+  isActive  Boolean  @default(true) @map("is_active")
+  minBet    BigInt   @map("min_bet")
+  maxBet    BigInt   @map("max_bet")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  sessions ProviderGameSession[]
+  rounds   ProviderGameRound[]
+
+  @@map("provider_games")
+}
+
+/// Casinos the provider serves: where to call them back and the secret to sign with.
+model ProviderCasino {
+  id                Int      @id @default(autoincrement())
+  casinoCode        String   @unique @map("casino_code") @db.VarChar(50)
+  name              String   @db.VarChar(100)
+  casinoApiEndpoint String   @map("casino_api_endpoint") @db.VarChar(255)
+  casinoSecret      String   @map("casino_secret") @db.VarChar(255)
+  isActive          Boolean  @default(true) @map("is_active")
+  createdAt         DateTime @default(now()) @map("created_at")
+
+  customers ProviderCustomer[]
+
+  @@map("provider_casinos")
+}
+
+/// A casino player as the provider knows them. player_id is the provider's own id.
+model ProviderCustomer {
+  id             Int      @id @default(autoincrement())
+  playerId       String   @unique @map("player_id") @db.VarChar(100)
+  casinoId       Int      @map("casino_id")
+  externalUserId String   @map("external_user_id") @db.VarChar(100)
+  createdAt      DateTime @default(now()) @map("created_at")
+
+  casino   ProviderCasino        @relation(fields: [casinoId], references: [id])
+  sessions ProviderGameSession[]
+  rounds   ProviderGameRound[]
+
+  @@unique([casinoId, externalUserId])
+  @@map("provider_customers")
+}
+
+/// Created by /provider/launch. /provider/simulate only runs against a session stored here.
+model ProviderGameSession {
+  id                 Int      @id @default(autoincrement())
+  providerSessionId  String   @unique @map("provider_session_id") @db.VarChar(100)
+  casinoSessionToken String   @unique @map("casino_session_token") @db.VarChar(64)
+  customerId         Int      @map("customer_id")
+  gameId             Int      @map("game_id")
+  currency           String   @db.Char(3)
+  isActive           Boolean  @default(true) @map("is_active")
+  createdAt          DateTime @default(now()) @map("created_at")
+
+  customer ProviderCustomer    @relation(fields: [customerId], references: [id])
+  game     ProviderGame        @relation(fields: [gameId], references: [id])
+  rounds   ProviderGameRound[]
+
+  @@map("provider_game_sessions")
+}
+
+/// Groups the bets and payouts of one round.
+model ProviderGameRound {
+  id                Int      @id @default(autoincrement())
+  roundId           String   @unique @map("round_id") @db.VarChar(100)
+  sessionId         Int      @map("session_id")
+  customerId        Int      @map("customer_id")
+  gameId            Int      @map("game_id")
+  currency          String   @db.Char(3)
+  status            String   @default("OPEN") @db.VarChar(20)
+  totalBetAmount    BigInt   @default(0) @map("total_bet_amount")
+  totalPayoutAmount BigInt   @default(0) @map("total_payout_amount")
+  createdAt         DateTime @default(now()) @map("created_at")
+  updatedAt         DateTime @updatedAt @map("updated_at")
+
+  session  ProviderGameSession @relation(fields: [sessionId], references: [id])
+  customer ProviderCustomer    @relation(fields: [customerId], references: [id])
+  game     ProviderGame        @relation(fields: [gameId], references: [id])
+  bets     ProviderBet[]
+
+  @@map("provider_game_rounds")
+}
+
+/// Every money call sent to the casino: written as PENDING before the call,
+/// then updated with the casino's answer.
+model ProviderBet {
+  id                   Int      @id @default(autoincrement())
+  transactionId        String   @unique @map("transaction_id") @db.VarChar(100)
+  roundId              Int      @map("round_id")
+  betType              String   @map("bet_type") @db.VarChar(10)
+  amount               BigInt
+  relatedTransactionId String?  @map("related_transaction_id") @db.VarChar(100)
+  casinoBalanceAfter   BigInt?  @map("casino_balance_after")
+  status               String   @default("PENDING") @db.VarChar(20)
+  responseCache        Json?    @map("response_cache")
+  createdAt            DateTime @default(now()) @map("created_at")
+  updatedAt            DateTime @updatedAt @map("updated_at")
+
+  round ProviderGameRound @relation(fields: [roundId], references: [id])
+
+  @@map("provider_bets")
+}
