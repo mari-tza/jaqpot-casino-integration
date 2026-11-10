@@ -16,9 +16,10 @@
     "format": "prettier --write \"**/*.{ts,mjs,json}\"",
     "format:check": "prettier --check \"**/*.{ts,mjs,json}\"",
     "db:up": "docker compose up -d --wait postgres",
-    "db:validate": "prisma validate",
     "test": "vitest run",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "db:migrate": "prisma migrate dev",
+    "db:deploy": "prisma migrate deploy"
   },
   "dependencies": {
     "@prisma/client": "^5.22.0",
