@@ -214,3 +214,13 @@ the casino code, session token, player and currency all match the launched sessi
 duplicate, to show idempotency end to end. The rollback comes before the payout because a
 paid round cannot be rolled back (D13). New ids per run make re-running play a new round,
 while a resend inside a run is the case idempotency must absorb.
+
+## D19 — The container migrates and seeds on start
+
+**Decision.** The image runs `prisma migrate deploy`, the seed, then the server.
+`docker compose up` waits for PostgreSQL to be healthy first. The image keeps the dev
+dependencies (Prisma CLI, tsx) so the same container can run `npm run simulate`.
+
+**Why.** One command from a clean clone to a played round, without Node on the host.
+Both steps are idempotent, so restarts are safe. A production image would be
+multi-stage without dev dependencies, and run migrations as a separate release step.

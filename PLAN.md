@@ -71,9 +71,9 @@ Build the system in small, reviewable milestones. Money correctness first
 - [x] End-to-end tests, including re-running the simulation
 
 ### M7 — Run and review experience
-- [ ] Dockerfile; `docker compose up` runs app and database
-- [ ] Helper to send signed requests by hand
-- [ ] README: setup, single command to run a round, API reference, error codes
+- [x] Dockerfile; `docker compose up` runs app and database
+- [x] Helper to send signed requests by hand
+- [x] README: setup, single command to run a round, API reference, error codes
 
 ## Requirements traceability
 
