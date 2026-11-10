@@ -5,7 +5,7 @@ export default defineConfig({
     environment: "node",
     include: ["tests/**/*.test.ts"],
     // .env locally; CI sets the variables.
-    setupFiles: ["dotenv/config"],
+    setupFiles: ["dotenv/config", "./tests/setup.ts"],
     // One shared database.
     fileParallelism: false,
     testTimeout: 30_000,
