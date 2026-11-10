@@ -80,6 +80,11 @@ jobs:
 
       - run: curl -fsS localhost:3000/health
 
+      - name: Run a round twice
+        run: |
+          docker compose exec -T app npm run -s simulate
+          docker compose exec -T app npm run -s simulate
+
       - name: App logs
         if: failure()
         run: docker compose logs app
