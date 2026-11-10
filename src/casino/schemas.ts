@@ -17,3 +17,11 @@ export const DebitBody = SessionFields.extend({
   roundId: ExternalId,
   amount: Amount,
 });
+
+/** 0 is allowed: providers often close a lost round with a zero payout. */
+export const CreditBody = SessionFields.extend({
+  transactionId: ExternalId,
+  roundId: ExternalId,
+  amount: z.number().int().nonnegative().max(Number.MAX_SAFE_INTEGER),
+  relatedTransactionId: ExternalId,
+});

@@ -1,6 +1,11 @@
 import { Prisma, type CasinoTransaction } from "@prisma/client";
 import { prisma } from "../../shared/db/prisma";
-import { IdempotencyConflictError, InsufficientFundsError, WalletNotFoundError } from "../errors";
+import {
+  CreditNotAllowedError,
+  IdempotencyConflictError,
+  InsufficientFundsError,
+  WalletNotFoundError,
+} from "../errors";
 import { createLedgerRow, findByExternalId, type TransactionType } from "../repositories/transaction.repository";
 import { lockWallet, setBalance } from "../repositories/wallet.repository";
 
@@ -97,5 +102,20 @@ export function debit(req: MoneyRequest, amount: bigint): Promise<MoneyResponse>
   return runOnce(req, { type: "DEBIT", amount }, async (tx, balance) => {
     if (balance < amount) throw new InsufficientFundsError();
     return record(tx, req, "DEBIT", amount, balance - amount);
+  });
+}
+
+/** A payout must point at an accepted bet on the same wallet and round. */
+export function credit(req: MoneyRequest, amount: bigint, betTransactionId: string): Promise<MoneyResponse> {
+  const fp: Fingerprint = { type: "CREDIT", amount, relatedTransactionId: betTransactionId };
+
+  return runOnce(req, fp, async (tx, balance) => {
+    const bet = await findByExternalId(betTransactionId, tx);
+    if (!bet || bet.transactionType !== "DEBIT" || bet.walletId !== req.walletId) {
+      throw new CreditNotAllowedError("Payout must reference an accepted bet on this wallet");
+    }
+    if (bet.roundId !== req.roundId) throw new CreditNotAllowedError("Payout and bet are in different rounds");
+
+    return record(tx, req, "CREDIT", amount, balance + amount, betTransactionId);
   });
 }

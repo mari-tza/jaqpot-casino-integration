@@ -42,3 +42,9 @@ export class IdempotencyConflictError extends AppError {
     super(409, "IDEMPOTENCY_CONFLICT", "transactionId was already used for a different request");
   }
 }
+
+export class CreditNotAllowedError extends AppError {
+  constructor(reason: string) {
+    super(409, "CREDIT_NOT_ALLOWED", reason);
+  }
+}
