@@ -1,0 +1,10 @@
+// Casino (casino_*) and provider (provider_*) models are added in M1.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
