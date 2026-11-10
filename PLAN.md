@@ -24,7 +24,7 @@ Build the system in small, reviewable milestones. Money correctness first
 ### M0 — Project setup
 - [ ] TypeScript + Express skeleton with `GET /health`
 - [ ] PostgreSQL via `docker compose`
-- [ ] Prisma wired to the database
+- [ ] Prisma configured (datasource only; models and client come with M1)
 - [ ] Vitest with a first test
 - [ ] ESLint + Prettier
 - [ ] CI: lint, typecheck, tests
@@ -34,6 +34,7 @@ Build the system in small, reviewable milestones. Money correctness first
 - [ ] Casino tables: users, wallets, game providers, games, game sessions, transactions
 - [ ] Provider tables: games, customers, game sessions, game rounds, bets
 - [ ] Unique external transaction ids per system; round id on casino transactions
+- [ ] Prisma client wired; `/health` checks the database
 - [ ] Initial migration and seed (two players, one game, provider and casino registry)
 - [ ] Naming decision for `CASINO_*` / `PROVIDER_*` prefixes recorded
 
