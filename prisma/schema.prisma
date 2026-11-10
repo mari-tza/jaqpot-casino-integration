@@ -1,5 +1,3 @@
-// Casino (casino_*) and provider (provider_*) models are added in M1.
-
 generator client {
   provider = "prisma-client-js"
 }
@@ -7,4 +5,114 @@ generator client {
 datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")
+}
+
+// ═══════════════════════════════════════════════════════════════════
+//  CASINO DOMAIN (casino_*)
+//  Source of truth for balances. Only casino code reads or writes here.
+//  Amounts are integer minor units (cents) stored as BIGINT.
+// ═══════════════════════════════════════════════════════════════════
+
+model CasinoUser {
+  id        Int      @id @default(autoincrement())
+  username  String   @unique @db.VarChar(100)
+  email     String   @unique @db.VarChar(255)
+  createdAt DateTime @default(now()) @map("created_at")
+
+  wallets  CasinoWallet[]
+  sessions CasinoGameSession[]
+
+  @@map("casino_users")
+}
+
+/// One wallet per user and currency. CHECK (playable_balance >= 0) in the migration.
+model CasinoWallet {
+  id                Int      @id @default(autoincrement())
+  userId            Int      @map("user_id")
+  currencyCode      String   @map("currency_code") @db.Char(3)
+  playableBalance   BigInt   @default(0) @map("playable_balance")
+  redeemableBalance BigInt   @default(0) @map("redeemable_balance")
+  updatedAt         DateTime @updatedAt @map("updated_at")
+
+  user         CasinoUser          @relation(fields: [userId], references: [id])
+  sessions     CasinoGameSession[]
+  transactions CasinoTransaction[]
+
+  @@unique([userId, currencyCode])
+  @@map("casino_wallets")
+}
+
+/// Providers the casino integrates with: where to call them and the secret to sign with.
+model CasinoGameProvider {
+  id          Int      @id @default(autoincrement())
+  code        String   @unique @db.VarChar(50)
+  name        String   @db.VarChar(100)
+  apiEndpoint String   @map("api_endpoint") @db.VarChar(255)
+  secretKey   String   @map("secret_key") @db.VarChar(255)
+  isDisabled  Boolean  @default(false) @map("is_disabled")
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  games CasinoGame[]
+
+  @@map("casino_game_providers")
+}
+
+/// A casino game mapped to a provider game, with the bet limits the casino enforces.
+model CasinoGame {
+  id             Int      @id @default(autoincrement())
+  providerId     Int      @map("provider_id")
+  providerGameId String   @map("provider_game_id") @db.VarChar(100)
+  isActive       Boolean  @default(true) @map("is_active")
+  minBet         BigInt   @map("min_bet")
+  maxBet         BigInt   @map("max_bet")
+  createdAt      DateTime @default(now()) @map("created_at")
+
+  provider CasinoGameProvider  @relation(fields: [providerId], references: [id])
+  sessions CasinoGameSession[]
+
+  @@unique([providerId, providerGameId])
+  @@map("casino_games")
+}
+
+/// Links user, wallet and game to the provider-side session. The token is what the provider sends back.
+model CasinoGameSession {
+  id                Int      @id @default(autoincrement())
+  token             String   @unique @db.VarChar(64)
+  userId            Int      @map("user_id")
+  walletId          Int      @map("wallet_id")
+  gameId            Int      @map("game_id")
+  providerSessionId String?  @unique @map("provider_session_id") @db.VarChar(100)
+  isActive          Boolean  @default(true) @map("is_active")
+  createdAt         DateTime @default(now()) @map("created_at")
+
+  user         CasinoUser          @relation(fields: [userId], references: [id])
+  wallet       CasinoWallet        @relation(fields: [walletId], references: [id])
+  game         CasinoGame          @relation(fields: [gameId], references: [id])
+  transactions CasinoTransaction[]
+
+  @@map("casino_game_sessions")
+}
+
+/// Append-only ledger and idempotency store.
+/// external_transaction_id is the provider's id: UNIQUE, so a retry can never create a second row.
+/// response_cache holds the first successful response, replayed for duplicates.
+model CasinoTransaction {
+  id                           Int      @id @default(autoincrement())
+  walletId                     Int      @map("wallet_id")
+  sessionId                    Int      @map("session_id")
+  roundId                      String   @map("round_id") @db.VarChar(100)
+  transactionType              String   @map("transaction_type") @db.VarChar(10)
+  amount                       BigInt
+  externalTransactionId        String   @unique @map("external_transaction_id") @db.VarChar(100)
+  relatedExternalTransactionId String?  @map("related_external_transaction_id") @db.VarChar(100)
+  balanceAfter                 BigInt   @map("balance_after")
+  responseCache                Json     @map("response_cache")
+  createdAt                    DateTime @default(now()) @map("created_at")
+
+  wallet  CasinoWallet      @relation(fields: [walletId], references: [id])
+  session CasinoGameSession @relation(fields: [sessionId], references: [id])
+
+  @@index([walletId, roundId])
+  @@index([relatedExternalTransactionId])
+  @@map("casino_transactions")
 }
