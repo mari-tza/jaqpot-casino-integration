@@ -6,6 +6,12 @@ export class SessionNotFoundError extends AppError {
   }
 }
 
+export class GameNotFoundError extends AppError {
+  constructor() {
+    super(404, "GAME_NOT_FOUND", "Game not found, inactive, or its provider is disabled");
+  }
+}
+
 export class SessionUserMismatchError extends AppError {
   constructor() {
     super(403, "SESSION_USER_MISMATCH", "Session does not belong to this user");
@@ -20,7 +26,7 @@ export class CurrencyMismatchError extends AppError {
 
 export class WalletNotFoundError extends AppError {
   constructor() {
-    super(404, "WALLET_NOT_FOUND", "Wallet not found");
+    super(404, "WALLET_NOT_FOUND", "No wallet for this player and currency");
   }
 }
 

@@ -8,6 +8,13 @@ export const SessionFields = z.object({
   currency: z.string().regex(/^[A-Z]{3}$/),
 });
 
+export const LaunchGameBody = z.object({
+  userId: z.number().int().positive(),
+  gameId: z.number().int().positive(),
+  currency: z.string().regex(/^[A-Z]{3}$/),
+});
+export type LaunchGameInput = z.infer<typeof LaunchGameBody>;
+
 export const GetBalanceBody = SessionFields;
 
 const Amount = z.number().int().positive().max(Number.MAX_SAFE_INTEGER);
