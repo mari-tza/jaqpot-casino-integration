@@ -45,7 +45,10 @@ async function main() {
     process.exit(1);
   }
 
-  const data = await res.json();
+  const data = await res.json().catch(() => {
+    console.error(`${baseUrl} answered ${res.status} without JSON. Is it this app? Use --url to point elsewhere.`);
+    process.exit(1);
+  });
   if (args.json) {
     console.log(JSON.stringify(data, null, 2));
   }
@@ -70,4 +73,7 @@ async function main() {
   console.log(`\nBalance ${money(round.startingBalance)} → ${money(round.finalBalance)} ${data.currency}\n`);
 }
 
-void main();
+main().catch((err: unknown) => {
+  console.error(err instanceof Error ? err.message : err);
+  process.exit(1);
+});
