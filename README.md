@@ -22,9 +22,9 @@ Requirements: Node.js 18+ and Docker.
 ```bash
 cp .env.example .env
 npm install
-npm run db:up      # PostgreSQL in Docker (set DB_PORT if 5432 is busy)
-npm run db:deploy  # apply migrations
-npm run db:seed    # alice 1,000.00 USD, bob 500.00 USD, game slots-777
+npm run db:up      # set DB_PORT if 5432 is busy
+npm run db:deploy
+npm run db:seed
 npm run dev        # http://localhost:3000/health
 ```
 
@@ -32,6 +32,9 @@ npm run dev        # http://localhost:3000/health
 |---|---|
 | `npm run dev` | Start the server and reload on change |
 | `npm test` | Run the test suite (needs the database up, migrated and seeded) |
+| `npm run db:up` | Start PostgreSQL in Docker |
+| `npm run db:deploy` | Apply the committed migrations |
+| `npm run db:seed` | Create players alice (1,000.00 USD) and bob (500.00 USD) and game `slots-777` |
 | `npm run db:migrate` | Create and apply a migration after editing `schema.prisma` |
 | `npm run db:reset` | Drop, re-apply migrations and seed |
 | `npm run lint` / `npm run format` | ESLint / Prettier |
