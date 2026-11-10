@@ -16,9 +16,12 @@
     "format": "prettier --write \"**/*.{ts,mjs,json}\"",
     "format:check": "prettier --check \"**/*.{ts,mjs,json}\"",
     "db:up": "docker compose up -d --wait postgres",
-    "db:validate": "prisma validate",
     "test": "vitest run",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "db:migrate": "prisma migrate dev",
+    "db:deploy": "prisma migrate deploy",
+    "db:seed": "tsx prisma/seed.ts",
+    "db:reset": "prisma migrate reset --force"
   },
   "dependencies": {
     "@prisma/client": "^5.22.0",
@@ -40,5 +43,8 @@
     "typescript": "^5.9.3",
     "typescript-eslint": "^8.72.2",
     "vitest": "^2.1.9"
+  },
+  "prisma": {
+    "seed": "tsx prisma/seed.ts"
   }
 }
