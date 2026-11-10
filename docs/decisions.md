@@ -166,7 +166,8 @@ receive money callbacks.
 
 **Decision.** The provider stores one session per casino session token. A repeated launch
 with the same token, player, game and currency returns the same session; any other
-combination is `409 SESSION_CONFLICT`.
+combination is `409 SESSION_CONFLICT`. The customer and the session are inserted with
+`ON CONFLICT DO NOTHING` and read back, so copies arriving at the same time get the same rows.
 
 **Why.** The casino may retry a launch after a timeout. Creating a second provider session
 for the same casino session would leave two sessions able to play on one wallet.
