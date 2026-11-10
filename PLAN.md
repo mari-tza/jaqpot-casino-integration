@@ -1,0 +1,96 @@
+# Implementation plan
+
+Casino platform and game provider (Jaqpot) integration, built from the
+[technical test](#requirements-traceability) requirements.
+
+## Approach
+
+Build the system in small, reviewable milestones. Money correctness first
+(wallet, idempotency, rollback rules), then the flows that use it
+(launch, simulation), then the run-and-review experience.
+
+## Workflow
+
+- One milestone → one GitHub issue → one branch → one pull request.
+- Branch names: `feat/…`, `fix/…`, `test/…`, `docs/…`, `chore/…`.
+- Commits follow [Conventional Commits](https://www.conventionalcommits.org/).
+- Every PR must pass CI (lint, typecheck, tests) before merge.
+- PRs are merged with a merge commit; the branch is deleted after merge.
+- Technical decisions are recorded in `docs/decisions.md` as they are made.
+- This file is updated in each PR: checkboxes reflect what is merged.
+
+## Milestones
+
+### M0 — Project setup
+- [ ] TypeScript + Express skeleton with `GET /health`
+- [ ] PostgreSQL via `docker compose`
+- [ ] Prisma wired to the database
+- [ ] Vitest with a first test
+- [ ] ESLint + Prettier
+- [ ] CI: lint, typecheck, tests
+- [ ] Pull request template
+
+### M1 — Database schema
+- [ ] Casino tables: users, wallets, game providers, games, game sessions, transactions
+- [ ] Provider tables: games, customers, game sessions, game rounds, bets
+- [ ] Unique external transaction ids per system; round id on casino transactions
+- [ ] Initial migration and seed (two players, one game, provider and casino registry)
+- [ ] Naming decision for `CASINO_*` / `PROVIDER_*` prefixes recorded
+
+### M2 — Shared infrastructure
+- [ ] HMAC-SHA256 sign/verify over the raw request body, constant-time compare
+- [ ] One middleware per direction (`x-casino-signature`, `x-provider-signature`)
+- [ ] Error model with stable error codes and a single error handler
+- [ ] Request id propagation and structured logging
+
+### M3 — Casino wallet callbacks
+- [ ] `POST /casino/getBalance` (read-only)
+- [ ] `POST /casino/debit`: funds check, bet limits, atomic update under a row lock
+- [ ] `POST /casino/credit`: linked to an accepted bet in the same round
+- [ ] Idempotency: replay the stored response, reject a reused id with a different payload, safe under concurrency
+- [ ] Session checks: user owns the session, currency matches the wallet
+
+### M4 — Rollback rules (optional in the spec)
+- [ ] Only bets can be rolled back, never payouts
+- [ ] No rollback once the round has a payout
+- [ ] A bet is refunded at most once
+- [ ] Tombstone when the bet is unknown; a bet arriving after its tombstone is rejected
+
+### M5 — Launch flow
+- [ ] `POST /casino/launchGame` validates player, wallet and game, creates the casino session
+- [ ] `POST /provider/launch` creates and stores the provider session
+- [ ] Casino and provider sessions linked; casino session deactivated if the provider refuses
+
+### M6 — Simulation
+- [ ] Provider → casino client: signed calls, retries with the same transaction id
+- [ ] Provider bets recorded before calling the casino, then updated with the result
+- [ ] `POST /provider/simulate`: validates session and player, runs the scripted round
+      (balance check, bets, a duplicate bet, a rollback, a payout)
+- [ ] `POST /casino/simulateRound`: launch + simulate, end-to-end
+- [ ] End-to-end tests, including re-running the simulation
+
+### M7 — Run and review experience
+- [ ] Dockerfile; `docker compose up` runs app and database
+- [ ] Helper to send signed requests by hand
+- [ ] README: setup, single command to run a round, API reference, error codes
+
+## Requirements traceability
+
+| Requirement (technical test) | Milestone |
+|---|---|
+| `/casino/*` and `/provider/*` namespaces, logically separated systems | M0, M5 |
+| `CASINO_*` / `PROVIDER_*` tables, no cross-domain writes | M1 |
+| Wallet balances with transactional integrity and locking | M3 |
+| Idempotent debit / credit / rollback by `transactionId` | M3, M4 |
+| Rollback rules and tombstones | M4 |
+| HMAC-SHA256, one secret and header per direction | M2 |
+| `launchGame` → `provider/launch` | M5 |
+| `simulateRound` → `provider/simulate` with balance, bets, wins, rollback | M6 |
+| Schema and migrations | M1 |
+| README with setup and a single command for `simulateRound` | M7 |
+
+## Out of scope
+
+- Real game math or RNG: the round is scripted.
+- Frontend authentication for `launchGame`: the client is trusted in this test.
+- Currency conversion: one wallet per currency.
