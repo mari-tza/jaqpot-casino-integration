@@ -63,12 +63,12 @@ Build the system in small, reviewable milestones. Money correctness first
 - [x] Casino and provider sessions linked; casino session deactivated if the provider refuses
 
 ### M6 — Simulation
-- [ ] Provider → casino client: signed calls, retries with the same transaction id
-- [ ] Provider bets recorded before calling the casino, then updated with the result
-- [ ] `POST /provider/simulate`: validates session and player, runs the scripted round
+- [x] Provider → casino client: signed calls, retries with the same transaction id
+- [x] Provider bets recorded before calling the casino, then updated with the result
+- [x] `POST /provider/simulate`: validates session and player, runs the scripted round
       (balance check, bets, a duplicate bet, a rollback, a payout)
-- [ ] `POST /casino/simulateRound`: launch + simulate, end-to-end
-- [ ] End-to-end tests, including re-running the simulation
+- [x] `POST /casino/simulateRound`: launch + simulate, end-to-end
+- [x] End-to-end tests, including re-running the simulation
 
 ### M7 — Run and review experience
 - [ ] Dockerfile; `docker compose up` runs app and database
