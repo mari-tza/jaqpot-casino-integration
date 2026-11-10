@@ -101,7 +101,8 @@ export async function send(round: Round, call: Call): Promise<CasinoMoney> {
       where: { id: bet.id },
       data: { status: "ACCEPTED", casinoBalanceAfter: BigInt(res.balance), responseCache: { ...res } },
     }),
-    ...(call.type === "ROLLBACK" && !res.tombstone
+    // Refund or tombstone: either way the bet will never stand.
+    ...(call.type === "ROLLBACK"
       ? [
           prisma.providerBet.updateMany({
             where: { roundId: round.id, transactionId: related },
@@ -124,12 +125,14 @@ export async function closeRound(round: Round) {
   });
 }
 
-/** Refunds the bets the casino accepted, if the round has no payout yet. Best effort. */
+/** Rolls back accepted and pending bets unless the round has a payout; an unseen bet gets a tombstone. Best effort. */
 export async function failRound(round: Round) {
-  const accepted = await prisma.providerBet.findMany({ where: { roundId: round.id, status: "ACCEPTED" } });
-  const paid = accepted.some((b) => b.betType === "WIN");
+  const bets = await prisma.providerBet.findMany({
+    where: { roundId: round.id, status: { in: ["ACCEPTED", "PENDING"] } },
+  });
+  const paid = bets.some((b) => b.betType === "WIN" && b.status === "ACCEPTED");
 
-  for (const bet of paid ? [] : accepted.filter((b) => b.betType === "BET")) {
+  for (const bet of paid ? [] : bets.filter((b) => b.betType === "BET")) {
     await send(round, {
       type: "ROLLBACK",
       transactionId: `rb_${randomUUID()}`,

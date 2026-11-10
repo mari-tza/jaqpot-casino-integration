@@ -62,7 +62,7 @@ async function seedProvider() {
 async function main() {
   await seedCasino();
   await seedProvider();
-  console.log("Seed complete: alice 1,000.00 USD, bob 500.00 USD, game slots-777");
+  console.log("Seed complete: alice, bob and game slots-777 (existing balances kept)");
 }
 
 main()

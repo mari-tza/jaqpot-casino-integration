@@ -1,6 +1,8 @@
+import type { Logger } from "pino";
 import request from "supertest";
-import { afterEach, describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { createApp } from "../../src/app";
+import { simulate } from "../../src/provider/services/simulation.service";
 import { prisma } from "../../src/shared/db/prisma";
 import { balanceOf, resetCasino, userId } from "../helpers/casino";
 import { useLiveServer } from "../helpers/liveServer";
@@ -127,6 +129,19 @@ describe("POST /provider/simulate", () => {
       ["BET", "FAILED"],
       ["ROLLBACK", "ACCEPTED"],
     ]);
+  });
+
+  it("logs the failed step and the casino's answer", async () => {
+    const body = await launchedSession();
+    await prisma.casinoWallet.updateMany({ where: { userId: body.userId }, data: { playableBalance: 1200 } });
+    const log = { warn: vi.fn() };
+
+    await expect(simulate(body, { log: log as unknown as Logger })).rejects.toMatchObject({ code: "ROUND_FAILED" });
+
+    expect(log.warn).toHaveBeenCalledWith(
+      expect.objectContaining({ step: "bet", casinoStatus: 422, casinoError: "INSUFFICIENT_FUNDS" }),
+      "round failed",
+    );
   });
 
   it("fails the round when the casino does not answer", async () => {

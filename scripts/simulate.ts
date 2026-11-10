@@ -45,13 +45,23 @@ async function main() {
     process.exit(1);
   }
 
-  const data = await res.json();
+  const data = await res.json().catch(() => {
+    console.error(`${baseUrl} answered ${res.status} without JSON. Is it this app? Use --url to point elsewhere.`);
+    process.exit(1);
+  });
   if (args.json) {
     console.log(JSON.stringify(data, null, 2));
   }
   if (!res.ok) {
     console.error(`simulateRound failed: ${res.status} ${data.error}: ${data.message}`);
-    if (data.details) console.error(JSON.stringify(data.details));
+    // Provider's ROUND_FAILED details, forwarded by the casino.
+    const failed = data.details?.details;
+    if (failed?.step) {
+      console.error(`Round failed at ${failed.step}: casino answered ${failed.casinoStatus} ${failed.casinoError}.`);
+      console.error("Bets already accepted in that round were rolled back.");
+    } else if (data.details) {
+      console.error(JSON.stringify(data.details));
+    }
     process.exit(1);
   }
   if (args.json) return;
@@ -70,4 +80,7 @@ async function main() {
   console.log(`\nBalance ${money(round.startingBalance)} → ${money(round.finalBalance)} ${data.currency}\n`);
 }
 
-void main();
+main().catch((err: unknown) => {
+  console.error(err instanceof Error ? err.message : err);
+  process.exit(1);
+});

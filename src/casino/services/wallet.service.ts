@@ -56,7 +56,7 @@ async function runOnce(
       if (!wallet) throw new WalletNotFoundError();
 
       const existing = await findByExternalId(req.transactionId, tx);
-      if (existing) return replay(existing, req.walletId, fingerprint);
+      if (existing) return replay(existing, req, fingerprint);
 
       return work(tx, wallet.balance);
     });
@@ -64,15 +64,16 @@ async function runOnce(
     // Same id used concurrently on another wallet: the UNIQUE constraint wins.
     if (err instanceof Prisma.PrismaClientKnownRequestError && err.code === "P2002") {
       const existing = await findByExternalId(req.transactionId);
-      if (existing) return replay(existing, req.walletId, fingerprint);
+      if (existing) return replay(existing, req, fingerprint);
     }
     throw err;
   }
 }
 
-function replay(existing: CasinoTransaction, walletId: number, fp: Fingerprint): MoneyResponse {
+function replay(existing: CasinoTransaction, req: MoneyRequest, fp: Fingerprint): MoneyResponse {
   const same =
-    existing.walletId === walletId &&
+    existing.walletId === req.walletId &&
+    existing.roundId === req.roundId &&
     existing.transactionType === fp.type &&
     (fp.amount === undefined || existing.amount === fp.amount) &&
     (fp.relatedTransactionId === undefined || existing.relatedExternalTransactionId === fp.relatedTransactionId);

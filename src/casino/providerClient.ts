@@ -32,9 +32,15 @@ export async function callProvider<T>(
     throw new ProviderError(`Provider ${path} ${reason}`);
   }
 
-  const data = (await res.json().catch(() => ({}))) as { error?: string };
+  const data = (await res.json().catch(() => ({}))) as { error?: string; message?: string; details?: unknown };
   if (!res.ok) {
-    throw new ProviderError(`Provider ${path} failed with ${res.status}`, { status: res.status, error: data.error });
+    const { error, message, details } = data;
+    throw new ProviderError(`Provider ${path} failed with ${res.status}`, {
+      status: res.status,
+      error,
+      message,
+      details,
+    });
   }
   return data as T;
 }

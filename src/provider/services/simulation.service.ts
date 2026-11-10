@@ -87,6 +87,12 @@ export async function simulate(input: SimulateInput, opts: CallOptions = {}) {
 
 async function fail(round: Round, step: string, err: unknown) {
   await failRound(round);
-  if (!(err instanceof CasinoRejection)) return err;
+  const rejected = err instanceof CasinoRejection;
+  const reason = rejected
+    ? { casinoStatus: err.status, casinoError: err.body.error }
+    : { error: err instanceof Error ? err.message : String(err) };
+  round.opts.log?.warn({ roundId: round.roundId, step, ...reason }, "round failed");
+
+  if (!rejected) return err;
   return new RoundFailedError({ roundId: round.roundId, step, casinoStatus: err.status, casinoError: err.body.error });
 }

@@ -68,9 +68,9 @@ export class BetAlreadyRolledBackError extends AppError {
   }
 }
 
-/** The provider refused, failed or did not answer in time. */
+/** The provider refused, failed or did not answer in time. Its answer is kept in details. */
 export class ProviderError extends AppError {
-  constructor(message: string, details?: { status?: number; error?: string }) {
+  constructor(message: string, details?: { status?: number; error?: string; message?: string; details?: unknown }) {
     super(502, "PROVIDER_ERROR", message, details);
   }
 }

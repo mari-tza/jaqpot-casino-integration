@@ -87,7 +87,15 @@ describe("POST /casino/simulateRound", () => {
     const res = await simulateRound("alice");
 
     expect(res.status).toBe(502);
-    expect(res.body).toMatchObject({ error: "PROVIDER_ERROR", details: { status: 422, error: "ROUND_FAILED" } });
+    expect(res.body).toMatchObject({
+      error: "PROVIDER_ERROR",
+      details: {
+        status: 422,
+        error: "ROUND_FAILED",
+        message: "Round failed at bet",
+        details: { step: "bet", casinoStatus: 422, casinoError: "INSUFFICIENT_FUNDS" },
+      },
+    });
     expect(await balanceOf("alice")).toBe(BigInt(1200));
   });
 

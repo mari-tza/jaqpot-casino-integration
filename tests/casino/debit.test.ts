@@ -98,6 +98,17 @@ describe("POST /casino/debit", () => {
       expect(res.body.error).toBe("IDEMPOTENCY_CONFLICT");
     });
 
+    it("rejects a transactionId reused in another round", async () => {
+      const body = await debitBody();
+      await casinoPost("/debit", body);
+
+      const res = await casinoPost("/debit", { ...body, roundId: "round_2" });
+
+      expect(res.status).toBe(409);
+      expect(res.body.error).toBe("IDEMPOTENCY_CONFLICT");
+      expect(await balanceOf("alice")).toBe(BigInt(99_500));
+    });
+
     it("does not cache failures: a retry after a deposit can succeed", async () => {
       const body = await debitBody({ amount: 100_000 });
       await casinoPost("/debit", await debitBody({ amount: 100 }));

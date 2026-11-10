@@ -114,7 +114,7 @@ net for the same id arriving on two different wallets.
 
 **Decision.** `response_cache` holds the first successful response. A request that failed
 (insufficient funds, limits) leaves no row, so a retry is evaluated again. A retry whose
-payload differs from the stored one (type, amount, wallet or bet) gets
+payload differs from the stored one (type, amount, wallet, round or bet) gets
 `409 IDEMPOTENCY_CONFLICT` instead of the cached answer.
 
 **Why.** The spec asks to store the first successful result. Caching failures would
@@ -124,11 +124,13 @@ someone else's cached result would hide a provider bug.
 ## D12 — Payouts point at a bet
 
 **Decision.** A credit must reference (`relatedTransactionId`) an accepted debit on the
-same wallet and round. Zero payouts are accepted.
+same wallet and round. Zero payouts are accepted, and so is more than one payout per bet,
+each with its own `transactionId`.
 
 **Why.** The spec asks for credits linked to their round and bet. Rejecting a payout for a
 bet the casino never accepted stops money from being created out of nothing. Zero
-payouts are how providers usually close a lost round.
+payouts are how providers usually close a lost round. Several payouts on one bet are
+normal for bonus features; a resent payout has the same id and is replayed, not paid twice.
 
 ## D13 — Rollback rules
 
@@ -153,7 +155,7 @@ tombstone answers success so the provider stops retrying, and leaves an audit ro
 **Decision.** `POST /casino/launchGame` creates the casino session, then calls
 `/provider/launch`. If the provider refuses, fails or times out (10 s), the casino
 session is deactivated and the call returns `502 PROVIDER_ERROR` with the provider's
-status and code. The endpoint is unsigned: it is called by the frontend, and player
+status, code, message and details. The endpoint is unsigned: it is called by the frontend, and player
 authentication is out of scope for this test.
 
 **Why.** The provider needs the casino session token to call back, so the casino session
@@ -184,13 +186,15 @@ provider can always retry instead of guessing.
 
 **Decision.** Every money call is written to `provider_bets` as `PENDING` first, then
 updated to `ACCEPTED` (with the casino's balance and answer) or `FAILED` (with the
-casino's error). A rolled back bet is marked `ROLLED_BACK`. If the casino rejects a call
-mid-round, the round is `FAILED` and its accepted bets are rolled back, unless the round
-already has a payout. If the casino does not answer, rows stay `PENDING`.
+casino's error). A rolled back bet is marked `ROLLED_BACK`. If a call fails mid-round,
+the round is `FAILED` and its accepted and `PENDING` bets are rolled back, unless the
+round already has a payout.
 
-**Why.** A `PENDING` row is the provider's record of a call with an unknown outcome:
-what a reconciliation job would resend with the same id. Refunding a failed round keeps
-the player from losing a bet for a round that never finished.
+**Why.** A `PENDING` row is a call with an unknown outcome: the casino may have applied
+it without answering. Rolling it back is safe either way: the casino refunds it, or
+records a tombstone and refuses the bet if it arrives later (D13). Refunding a failed
+round keeps the player from losing a bet for a round that never finished. Rows stay
+`PENDING` only if the casino is still down for the rollback.
 
 ## D18 — Scripted round
 

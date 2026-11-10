@@ -75,8 +75,19 @@ and is not charged again. Every run uses new round and transaction ids, so re-ru
 plays a new round. The script and its rules are in [D18](docs/decisions.md#d18--scripted-round).
 
 If the casino rejects a call mid-round (for example `INSUFFICIENT_FUNDS`), the provider
-rolls back the bets it already placed and the call returns `502 PROVIDER_ERROR` with
-`details: { "status": 422, "error": "ROUND_FAILED" }`.
+rolls back the bets it already placed and the call returns `502 PROVIDER_ERROR` with the
+provider's answer, including the failed step and the casino's reason:
+
+```json
+{
+  "error": "PROVIDER_ERROR",
+  "message": "Provider /simulate failed with 422",
+  "details": {
+    "status": 422, "error": "ROUND_FAILED", "message": "Round failed at bet",
+    "details": { "roundId": "rnd_…", "step": "bet", "casinoStatus": 422, "casinoError": "INSUFFICIENT_FUNDS" }
+  }
+}
+```
 
 ## Sending requests by hand
 
@@ -195,7 +206,7 @@ All callbacks are `POST`, signed with `x-casino-signature` (`CASINO_SECRET`), an
 ```
 
 **Idempotency.** Sending the same `transactionId` again returns the first response and moves
-no money. Reusing it with a different amount, type or bet returns `409 IDEMPOTENCY_CONFLICT`.
+no money. Reusing it with a different amount, type, round or bet returns `409 IDEMPOTENCY_CONFLICT`.
 
 **Rollback rules.** Only bets, at most once, never after the round has a payout. A rollback
 for an unknown bet records a **tombstone** (`"tombstone": true`, balance unchanged), and that
@@ -240,7 +251,8 @@ Each response carries an `x-request-id` header; send your own to trace a call ac
 
 Out of scope for the test, in the order I would take them:
 
-- A reconciliation job that resends provider calls left `PENDING` (same id, so it is safe).
+- A reconciliation job for calls still `PENDING` because the casino was down even for the
+  failed round's rollbacks (same id, so resending is safe).
 - A timestamp and nonce in the signed payload to refuse replays outright; today a replay is
   harmless because every money call is idempotent ([D7](docs/decisions.md#d7--signatures-cover-the-raw-request-bytes)).
 - Player authentication on `launchGame` and `simulateRound`.
