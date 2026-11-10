@@ -22,13 +22,13 @@ Build the system in small, reviewable milestones. Money correctness first
 ## Milestones
 
 ### M0 — Project setup
-- [ ] TypeScript + Express skeleton with `GET /health`
-- [ ] PostgreSQL via `docker compose`
-- [ ] Prisma configured (datasource only; models and client come with M1)
-- [ ] Vitest with a first test
-- [ ] ESLint + Prettier
-- [ ] CI: lint, typecheck, tests
-- [ ] Pull request template
+- [x] TypeScript + Express skeleton with `GET /health`
+- [x] PostgreSQL via `docker compose`
+- [x] Prisma configured (datasource only; models and client come with M1)
+- [x] Vitest with a first test
+- [x] ESLint + Prettier
+- [x] CI: lint, typecheck, tests
+- [x] Pull request template
 
 ### M1 — Database schema
 - [ ] Casino tables: users, wallets, game providers, games, game sessions, transactions
