@@ -1,5 +1,6 @@
 import type { ErrorRequestHandler, RequestHandler } from "express";
 import { ZodError } from "zod";
+import { logger } from "../logger";
 import { AppError, NotFoundError } from "./AppError";
 
 /** Body of every error response. */
@@ -11,7 +12,7 @@ export interface ErrorBody {
 
 export const notFoundHandler: RequestHandler = (_req, _res, next) => next(new NotFoundError());
 
-export const errorHandler: ErrorRequestHandler = (err, _req, res, _next) => {
+export const errorHandler: ErrorRequestHandler = (err, req, res, _next) => {
   const send = (status: number, body: ErrorBody) => res.status(status).json(body);
 
   if (err instanceof AppError) {
@@ -25,7 +26,7 @@ export const errorHandler: ErrorRequestHandler = (err, _req, res, _next) => {
     return send(400, { error: "INVALID_JSON", message: "Request body is not valid JSON" });
   }
 
-  // Unexpected: never leak internals to the caller.
-  console.error(err);
+  // Unexpected: log it with the request id, never leak internals to the caller.
+  (req.log ?? logger).error({ err }, "unhandled error");
   return send(500, { error: "INTERNAL_ERROR", message: "Unexpected error" });
 };

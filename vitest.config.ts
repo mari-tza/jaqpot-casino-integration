@@ -9,5 +9,6 @@ export default defineConfig({
     // Test files share one database, so run them one at a time.
     fileParallelism: false,
     testTimeout: 30_000,
+    env: { LOG_LEVEL: "silent" },
   },
 });

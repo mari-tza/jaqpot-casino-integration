@@ -1,6 +1,6 @@
 import express from "express";
 import request from "supertest";
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { describe, expect, it } from "vitest";
 import { z } from "zod";
 import { createApp } from "../../src/app";
 import { AppError } from "../../src/shared/errors/AppError";
@@ -25,8 +25,6 @@ function appThatThrows() {
 }
 
 describe("error responses", () => {
-  afterEach(() => vi.restoreAllMocks());
-
   it("maps an AppError to its status and code", async () => {
     const res = await request(appThatThrows()).post("/app-error");
 
@@ -53,8 +51,6 @@ describe("error responses", () => {
   });
 
   it("hides the message of unexpected errors", async () => {
-    vi.spyOn(console, "error").mockImplementation(() => {});
-
     const res = await request(appThatThrows()).post("/boom");
 
     expect(res.status).toBe(500);
