@@ -1,4 +1,4 @@
-import { CurrencyMismatchError, SessionNotFoundError, SessionUserMismatchError } from "../errors";
+import { BetLimitError, CurrencyMismatchError, SessionNotFoundError, SessionUserMismatchError } from "../errors";
 import { findActiveSession, type ActiveSession } from "../repositories/session.repository";
 
 /** The signature proves who sent the call, not which player it may touch. */
@@ -8,4 +8,9 @@ export async function resolveSession(token: string, userId: number, currency: st
   if (session.userId !== userId) throw new SessionUserMismatchError();
   if (session.wallet.currencyCode !== currency) throw new CurrencyMismatchError();
   return session;
+}
+
+export function assertWithinBetLimits(session: ActiveSession, amount: bigint) {
+  const { minBet, maxBet } = session.game;
+  if (amount < minBet || amount > maxBet) throw new BetLimitError(minBet, maxBet);
 }

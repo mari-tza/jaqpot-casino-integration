@@ -17,3 +17,28 @@ export class CurrencyMismatchError extends AppError {
     super(422, "CURRENCY_MISMATCH", "Currency does not match the wallet");
   }
 }
+
+export class WalletNotFoundError extends AppError {
+  constructor() {
+    super(404, "WALLET_NOT_FOUND", "Wallet not found");
+  }
+}
+
+export class InsufficientFundsError extends AppError {
+  constructor() {
+    super(422, "INSUFFICIENT_FUNDS", "Insufficient funds");
+  }
+}
+
+export class BetLimitError extends AppError {
+  constructor(min: bigint, max: bigint) {
+    super(422, "BET_LIMIT_EXCEEDED", `Bet must be between ${min} and ${max}`);
+  }
+}
+
+/** Same transactionId, different request. */
+export class IdempotencyConflictError extends AppError {
+  constructor() {
+    super(409, "IDEMPOTENCY_CONFLICT", "transactionId was already used for a different request");
+  }
+}

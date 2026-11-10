@@ -9,3 +9,11 @@ export const SessionFields = z.object({
 });
 
 export const GetBalanceBody = SessionFields;
+
+const Amount = z.number().int().positive().max(Number.MAX_SAFE_INTEGER);
+
+export const DebitBody = SessionFields.extend({
+  transactionId: ExternalId,
+  roundId: ExternalId,
+  amount: Amount,
+});
