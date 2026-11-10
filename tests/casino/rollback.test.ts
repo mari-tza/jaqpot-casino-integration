@@ -80,6 +80,18 @@ describe("POST /casino/rollback", () => {
       expect(await balanceOf("alice")).toBe(BigInt(100_500)); // 100000 - 500 - 1000 + 2000
     });
 
+    it("rejects an unknown bet after payout without creating a tombstone", async () => {
+      const r = await round();
+      await r.bet("bet_a", 500);
+      await r.win("win_a", 2000, "bet_a");
+
+      const res = await r.rollback("unknown", "rb_unknown");
+
+      expect(res.status).toBe(409);
+      expect(res.body).toMatchObject({ error: "ROLLBACK_NOT_ALLOWED", message: "Round already has a payout" });
+      expect(await prisma.casinoTransaction.count({ where: { externalTransactionId: "rb_unknown" } })).toBe(0);
+    });
+
     it("a zero payout closes the round too", async () => {
       const r = await round();
       await r.bet("bet_a", 500);

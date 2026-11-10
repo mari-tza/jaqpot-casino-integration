@@ -209,7 +209,7 @@ All callbacks are `POST`, signed with `x-casino-signature` (`CASINO_SECRET`), an
 no money. Reusing it with a different amount, type, round or bet returns `409 IDEMPOTENCY_CONFLICT`.
 
 **Rollback rules.** Only bets, at most once, never after the round has a payout. A rollback
-for an unknown bet records a **tombstone** (`"tombstone": true`, balance unchanged), and that
+for an unknown bet in an unpaid round records a **tombstone** (`"tombstone": true`, balance unchanged), and that
 bet is rejected if it arrives later. Details in [D13](docs/decisions.md#d13--rollback-rules).
 
 | Status | `error` | When |

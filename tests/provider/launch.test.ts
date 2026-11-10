@@ -49,6 +49,25 @@ describe("POST /provider/launch", () => {
     expect(await prisma.providerGameSession.count()).toBe(1);
   });
 
+  it("creates the customer once when a new player launches twice at the same time", async () => {
+    const results = await Promise.all(Array.from({ length: 5 }, () => providerPost("/launch", launchBody())));
+
+    expect(results.map((r) => r.status)).toEqual([200, 200, 200, 200, 200]);
+    expect(await prisma.providerCustomer.count()).toBe(1);
+    expect(await prisma.providerGameSession.count()).toBe(5);
+  });
+
+  it("returns one session when the same launch arrives twice at the same time", async () => {
+    await providerPost("/launch", launchBody()); // customer exists, only the session races
+    const body = launchBody();
+
+    const results = await Promise.all(Array.from({ length: 10 }, () => providerPost("/launch", body)));
+
+    expect(new Set(results.map((r) => r.status))).toEqual(new Set([200]));
+    expect(new Set(results.map((r) => r.body.providerSessionId)).size).toBe(1);
+    expect(await prisma.providerGameSession.count()).toBe(2);
+  });
+
   it("rejects reusing a casino session token for another player", async () => {
     const body = launchBody();
     await providerPost("/launch", body);

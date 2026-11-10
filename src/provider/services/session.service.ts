@@ -20,27 +20,29 @@ export async function launch(input: LaunchInput) {
   const game = await prisma.providerGame.findUnique({ where: { gameId: input.gameId, isActive: true } });
   if (!game) throw new ProviderGameNotFoundError();
 
+  // Insert-if-missing (ON CONFLICT DO NOTHING), then read: concurrent launches can't hit the UNIQUE.
   const externalUserId = String(input.userId);
-  const customer = await prisma.providerCustomer.upsert({
+  await prisma.providerCustomer.createMany({
+    data: { casinoId: casino.id, externalUserId, playerId: `plr_${randomUUID()}` },
+    skipDuplicates: true,
+  });
+  const customer = await prisma.providerCustomer.findUniqueOrThrow({
     where: { casinoId_externalUserId: { casinoId: casino.id, externalUserId } },
-    update: {},
-    create: { casinoId: casino.id, externalUserId, playerId: `plr_${randomUUID()}` },
   });
 
-  const existing = await prisma.providerGameSession.findUnique({
+  await prisma.providerGameSession.createMany({
+    data: {
+      providerSessionId: `psess_${randomUUID()}`,
+      casinoSessionToken: input.sessionToken,
+      customerId: customer.id,
+      gameId: game.id,
+      currency: input.currency,
+    },
+    skipDuplicates: true,
+  });
+  const session = await prisma.providerGameSession.findUniqueOrThrow({
     where: { casinoSessionToken: input.sessionToken },
   });
-  const session =
-    existing ??
-    (await prisma.providerGameSession.create({
-      data: {
-        providerSessionId: `psess_${randomUUID()}`,
-        casinoSessionToken: input.sessionToken,
-        customerId: customer.id,
-        gameId: game.id,
-        currency: input.currency,
-      },
-    }));
 
   if (session.customerId !== customer.id || session.gameId !== game.id || session.currency !== input.currency) {
     throw new SessionConflictError();

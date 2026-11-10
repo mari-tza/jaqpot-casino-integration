@@ -81,6 +81,10 @@ Build the system in small, reviewable milestones. Money correctness first
 - [x] `npm run simulate` prints a clear error when the server does not answer JSON
 - [x] A failed round says which step failed and why, in the response, the logs and `npm run simulate`
 
+### M9 — Concurrent launches and paid-round rollbacks
+- [x] Simultaneous launches for one player create one customer, and one session per token
+- [x] A rollback for an unknown bet in a paid round is `409`, with no tombstone
+
 ## Requirements traceability
 
 | Requirement (technical test) | Milestone |
@@ -89,9 +93,9 @@ Build the system in small, reviewable milestones. Money correctness first
 | `CASINO_*` / `PROVIDER_*` tables, no cross-domain writes | M1 |
 | Wallet balances with transactional integrity and locking | M3 |
 | Idempotent debit / credit / rollback by `transactionId` | M3, M4, M8 |
-| Rollback rules and tombstones | M4 |
+| Rollback rules and tombstones | M4, M9 |
 | HMAC-SHA256, one secret and header per direction | M2 |
-| `launchGame` → `provider/launch` | M5 |
+| `launchGame` → `provider/launch` | M5, M9 |
 | `simulateRound` → `provider/simulate` with balance, bets, wins, rollback | M6 |
 | Schema and migrations | M1 |
 | README with setup and a single command for `simulateRound` | M7 |

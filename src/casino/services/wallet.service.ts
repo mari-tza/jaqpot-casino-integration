@@ -134,7 +134,7 @@ export function credit(req: MoneyRequest, amount: bigint, betTransactionId: stri
 
 /**
  * Refunds a bet: only DEBITs, on their own wallet and round, at most once, before any payout.
- * Unknown bet → tombstone: recorded, success, no balance change.
+ * Unknown bet in an unpaid round → tombstone: recorded, success, no balance change.
  */
 export function rollback(req: MoneyRequest, betTransactionId: string): Promise<MoneyResponse> {
   const fp: Fingerprint = { type: "ROLLBACK", relatedTransactionId: betTransactionId };
@@ -143,15 +143,18 @@ export function rollback(req: MoneyRequest, betTransactionId: string): Promise<M
     if (await findRollbackFor(betTransactionId, tx)) throw new RollbackNotAllowedError("Bet was already rolled back");
 
     const bet = await findByExternalId(betTransactionId, tx);
-    if (!bet) return record(tx, req, "ROLLBACK", BigInt(0), balance, betTransactionId, { tombstone: true });
-    if (bet.transactionType !== "DEBIT") throw new RollbackNotAllowedError("Only bets can be rolled back");
-    if (bet.walletId !== req.walletId || bet.roundId !== req.roundId) {
-      throw new RollbackNotAllowedError("Bet is not on this wallet and round");
+    if (bet) {
+      if (bet.transactionType !== "DEBIT") throw new RollbackNotAllowedError("Only bets can be rolled back");
+      if (bet.walletId !== req.walletId || bet.roundId !== req.roundId) {
+        throw new RollbackNotAllowedError("Bet is not on this wallet and round");
+      }
     }
+    // Applies to unknown bets too: no tombstone in a paid round.
     if (await findCreditInRound(req.walletId, req.roundId, tx)) {
       throw new RollbackNotAllowedError("Round already has a payout");
     }
 
+    if (!bet) return record(tx, req, "ROLLBACK", BigInt(0), balance, betTransactionId, { tombstone: true });
     return record(tx, req, "ROLLBACK", bet.amount, balance + bet.amount, betTransactionId, { tombstone: false });
   });
 }
