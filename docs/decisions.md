@@ -168,3 +168,49 @@ combination is `409 SESSION_CONFLICT`.
 
 **Why.** The casino may retry a launch after a timeout. Creating a second provider session
 for the same casino session would leave two sessions able to play on one wallet.
+
+## D16 — Provider retries with the same bytes
+
+**Decision.** The provider retries a casino call twice (200 ms, then 400 ms) after a
+network error, a timeout (5 s) or a 5xx, sending the same body and signature. A 4xx is
+the casino's decision and is not retried. After the last attempt the call fails with
+`502 CASINO_UNAVAILABLE`.
+
+**Why.** A timeout does not say whether the casino applied the call. Resending the same
+`transactionId` is safe because the casino replays its first answer (D10, D11), so the
+provider can always retry instead of guessing.
+
+## D17 — Provider records each call before sending it
+
+**Decision.** Every money call is written to `provider_bets` as `PENDING` first, then
+updated to `ACCEPTED` (with the casino's balance and answer) or `FAILED` (with the
+casino's error). A rolled back bet is marked `ROLLED_BACK`. If the casino rejects a call
+mid-round, the round is `FAILED` and its accepted bets are rolled back, unless the round
+already has a payout. If the casino does not answer, rows stay `PENDING`.
+
+**Why.** A `PENDING` row is the provider's record of a call with an unknown outcome:
+what a reconciliation job would resend with the same id. Refunding a failed round keeps
+the player from losing a bet for a round that never finished.
+
+## D18 — Scripted round
+
+**Decision.** `/provider/simulate` plays, on the launched session:
+
+| Step | Call | Balance (from 1,000.00) |
+|---|---|---|
+| Balance check | `getBalance` | 1,000.00 |
+| Bet A, 10.00 | `debit` | 990.00 |
+| Bet B, 5.00 | `debit` | 985.00 |
+| Bet A again, same id | `debit` | 990.00 (first answer replayed, nothing charged) |
+| Roll back bet B | `rollback` | 990.00 |
+| Pay 25.00 on bet A | `credit` | 1,015.00 |
+| Balance check | `getBalance` | 1,015.00 |
+
+Every run uses new round and transaction ids. Before playing, the provider checks that
+the casino code, session token, player and currency all match the launched session
+(`403 SESSION_MISMATCH` otherwise).
+
+**Why.** Covers what the spec asks for (balance, bets, a payout, a rollback) plus a
+duplicate, to show idempotency end to end. The rollback comes before the payout because a
+paid round cannot be rolled back (D13). New ids per run make re-running play a new round,
+while a resend inside a run is the case idempotency must absorb.

@@ -56,6 +56,62 @@ The casino creates its session, then calls `POST /provider/launch` (signed with
 `x-provider-signature`), and links both. If the provider refuses or does not answer,
 the casino session is deactivated and the response is `502 PROVIDER_ERROR`.
 
+## Running a round
+
+`POST /casino/simulateRound` (unsigned test driver) launches a session and asks the
+provider to play a scripted round on it: balance check, two bets, the first bet resent
+with the same id, a rollback, a payout and a final balance check. With the seed data:
+
+```bash
+curl -s -X POST localhost:3000/casino/simulateRound \
+  -H 'content-type: application/json' \
+  -d '{"userId": 1, "gameId": 1, "currency": "USD"}'
+```
+
+```json
+{
+  "sessionToken": "…", "providerSessionId": "psess_…", "gameUrl": "…", "balance": "100000", "currency": "USD",
+  "round": {
+    "roundId": "rnd_…", "status": "CLOSED",
+    "startingBalance": "100000", "finalBalance": "101500", "totalBet": "1000", "totalPayout": "2500",
+    "steps": [
+      { "step": "balance", "balance": "100000" },
+      { "step": "bet", "transactionId": "bet_…", "amount": 1000, "balance": "99000" },
+      { "step": "bet", "transactionId": "bet_…", "amount": 500, "balance": "98500" },
+      { "step": "duplicate_bet", "transactionId": "bet_…", "amount": 1000, "balance": "99000", "replayed": true },
+      { "step": "rollback", "transactionId": "rb_…", "relatedTransactionId": "bet_…", "amount": 500, "balance": "99000" },
+      { "step": "win", "transactionId": "win_…", "relatedTransactionId": "bet_…", "amount": 2500, "balance": "101500" },
+      { "step": "balance", "balance": "101500" }
+    ]
+  }
+}
+```
+
+The resent bet gets the casino's first answer back (`99000`, its balance at the time)
+and is not charged again. Running it again plays a new round: `101500` → `103000`.
+The script and its rules are in [D18](docs/decisions.md#d18--scripted-round).
+
+If the casino rejects a call mid-round (for example `INSUFFICIENT_FUNDS`), the provider
+rolls back the bets it already placed and the call returns `502 PROVIDER_ERROR` with
+`details: { "status": 422, "error": "ROUND_FAILED" }`.
+
+## Provider API — called by the casino
+
+Signed with `x-provider-signature` (`PROVIDER_SECRET`).
+
+| Endpoint | Body | Notes |
+|---|---|---|
+| `/provider/launch` | `sessionToken`, `userId`, `gameId`, `currency`, `casinoCode` | Idempotent per casino session token |
+| `/provider/simulate` | `providerSessionId`, `sessionToken`, `userId`, `currency`, `casinoCode` | All must match the launched session |
+
+| Status | `error` | When |
+|---|---|---|
+| 403 | `SESSION_MISMATCH` | Casino, token, player or currency differ from the session |
+| 404 | `CASINO_NOT_FOUND`, `GAME_NOT_FOUND`, `SESSION_NOT_FOUND` | Unknown or inactive |
+| 409 | `SESSION_CONFLICT` | Casino session already launched for another player or game |
+| 422 | `ROUND_FAILED` | The casino rejected a call; accepted bets were rolled back |
+| 502 | `CASINO_UNAVAILABLE` | No answer from the casino after retries |
+
 ## Casino API — provider callbacks
 
 All callbacks are `POST`, signed with `x-casino-signature` (`CASINO_SECRET`), and take

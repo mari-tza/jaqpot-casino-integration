@@ -37,24 +37,37 @@ Table details: [database.md](database.md).
 
 ## A game round
 
+`POST /casino/simulateRound` runs the whole flow (scripted round in
+[D18](decisions.md#d18--scripted-round)):
+
 ```mermaid
 sequenceDiagram
     participant C as Client
     participant CA as Casino
     participant PR as Provider
 
-    C->>CA: POST /casino/launchGame
+    C->>CA: POST /casino/simulateRound
     CA->>PR: POST /provider/launch (x-provider-signature)
     PR-->>CA: providerSessionId, gameUrl
-    CA-->>C: sessionToken, gameUrl, balance
+    CA->>PR: POST /provider/simulate (x-provider-signature)
 
-    Note over PR: player bets and wins
-    PR->>CA: POST /casino/getBalance (x-casino-signature)
-    PR->>CA: POST /casino/debit — bet
-    PR->>CA: POST /casino/rollback — cancel a bet
-    PR->>CA: POST /casino/credit — payout
+    Note over PR: checks casino, token, player, currency
+    PR->>CA: getBalance (x-casino-signature)
+    PR->>CA: debit — bet A
+    PR->>CA: debit — bet B
+    PR->>CA: debit — bet A again, same id (replayed)
+    PR->>CA: rollback — bet B
+    PR->>CA: credit — payout on bet A
+    PR->>CA: getBalance
     CA-->>PR: authoritative balance after each call
+
+    PR-->>CA: round result
+    CA-->>C: session and round result
 ```
+
+Each provider call is stored as `PENDING` before it is sent and retried with the
+same bytes on a network error or 5xx ([D16](decisions.md#d16--provider-retries-with-the-same-bytes),
+[D17](decisions.md#d17--provider-records-each-call-before-sending-it)).
 
 ## Trust rules
 
