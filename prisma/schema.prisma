@@ -7,11 +7,7 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-// ═══════════════════════════════════════════════════════════════════
-//  CASINO DOMAIN (casino_*)
-//  Source of truth for balances. Only casino code reads or writes here.
-//  Amounts are integer minor units (cents) stored as BIGINT.
-// ═══════════════════════════════════════════════════════════════════
+// ─── Casino (casino_*) ── owns balances; amounts in cents ───
 
 model CasinoUser {
   id        Int      @id @default(autoincrement())
@@ -25,7 +21,7 @@ model CasinoUser {
   @@map("casino_users")
 }
 
-/// One wallet per user and currency. CHECK (playable_balance >= 0) in the migration.
+/// One per user and currency. Balances can't go negative (CHECK).
 model CasinoWallet {
   id                Int      @id @default(autoincrement())
   userId            Int      @map("user_id")
@@ -42,7 +38,7 @@ model CasinoWallet {
   @@map("casino_wallets")
 }
 
-/// Providers the casino integrates with: where to call them and the secret to sign with.
+/// Provider endpoint and signing secret.
 model CasinoGameProvider {
   id          Int      @id @default(autoincrement())
   code        String   @unique @db.VarChar(50)
@@ -57,7 +53,7 @@ model CasinoGameProvider {
   @@map("casino_game_providers")
 }
 
-/// A casino game mapped to a provider game, with the bet limits the casino enforces.
+/// Provider game with the casino's bet limits.
 model CasinoGame {
   id             Int      @id @default(autoincrement())
   providerId     Int      @map("provider_id")
@@ -74,7 +70,7 @@ model CasinoGame {
   @@map("casino_games")
 }
 
-/// Links user, wallet and game to the provider-side session. The token is what the provider sends back.
+/// User + wallet + game, linked to the provider session.
 model CasinoGameSession {
   id                Int      @id @default(autoincrement())
   token             String   @unique @db.VarChar(64)
@@ -93,9 +89,8 @@ model CasinoGameSession {
   @@map("casino_game_sessions")
 }
 
-/// Append-only ledger and idempotency store.
-/// external_transaction_id is the provider's id: UNIQUE, so a retry can never create a second row.
-/// response_cache holds the first successful response, replayed for duplicates.
+/// Ledger and idempotency store: one row per provider transaction id;
+/// retries get response_cache back.
 model CasinoTransaction {
   id                           Int      @id @default(autoincrement())
   walletId                     Int      @map("wallet_id")
@@ -117,13 +112,9 @@ model CasinoTransaction {
   @@map("casino_transactions")
 }
 
-// ═══════════════════════════════════════════════════════════════════
-//  PROVIDER DOMAIN (provider_*)
-//  Never stores or computes a balance of its own: casino_balance_after
-//  is a copy of what the casino answered. Only provider code touches it.
-// ═══════════════════════════════════════════════════════════════════
+// ─── Provider (provider_*) ── no balances; stores casino answers ───
 
-/// Provider game catalog.
+/// Game catalog.
 model ProviderGame {
   id        Int      @id @default(autoincrement())
   gameId    String   @unique @map("game_id") @db.VarChar(100)
@@ -138,7 +129,7 @@ model ProviderGame {
   @@map("provider_games")
 }
 
-/// Casinos the provider serves: where to call them back and the secret to sign with.
+/// Casino callback endpoint and signing secret.
 model ProviderCasino {
   id                Int      @id @default(autoincrement())
   casinoCode        String   @unique @map("casino_code") @db.VarChar(50)
@@ -153,7 +144,7 @@ model ProviderCasino {
   @@map("provider_casinos")
 }
 
-/// A casino player as the provider knows them. player_id is the provider's own id.
+/// Casino player mapped to a provider player_id.
 model ProviderCustomer {
   id             Int      @id @default(autoincrement())
   playerId       String   @unique @map("player_id") @db.VarChar(100)
@@ -169,7 +160,7 @@ model ProviderCustomer {
   @@map("provider_customers")
 }
 
-/// Created by /provider/launch. /provider/simulate only runs against a session stored here.
+/// Created by /provider/launch; required by /provider/simulate.
 model ProviderGameSession {
   id                 Int      @id @default(autoincrement())
   providerSessionId  String   @unique @map("provider_session_id") @db.VarChar(100)
@@ -187,7 +178,7 @@ model ProviderGameSession {
   @@map("provider_game_sessions")
 }
 
-/// Groups the bets and payouts of one round.
+/// Bets and payouts of one round.
 model ProviderGameRound {
   id                Int      @id @default(autoincrement())
   roundId           String   @unique @map("round_id") @db.VarChar(100)
@@ -209,8 +200,7 @@ model ProviderGameRound {
   @@map("provider_game_rounds")
 }
 
-/// Every money call sent to the casino: written as PENDING before the call,
-/// then updated with the casino's answer.
+/// Each call to the casino: PENDING first, then the casino's answer.
 model ProviderBet {
   id                   Int      @id @default(autoincrement())
   transactionId        String   @unique @map("transaction_id") @db.VarChar(100)
